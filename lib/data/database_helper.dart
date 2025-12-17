@@ -10,7 +10,8 @@ class DatabaseHelper {
 
   // Valores iniciales para catálogos
   static const List<String> initialCombustibles = [
-    'Gasolina',
+    'Gasolina Regular',
+    'Gasolina Premium',
     'Diesel',
     'Eléctrico',
     'Híbrido',
@@ -41,6 +42,12 @@ class DatabaseHelper {
     'Tarjeta de crédito',
     'Tarjeta de débito',
     'Transferencia bancaria',
+  ];
+  static const List<String> initialUnidades = [
+    'Kilómetros',
+    'Millas',
+    'Litros',
+    'Galones',
   ];
 
   DatabaseHelper._internal();
@@ -82,6 +89,7 @@ class DatabaseHelper {
     await db.execute(_createMovimientoDetalle);
     await db.execute(_createMovimientoRuta);
     await db.execute(_createRecordatorios);
+    await db.execute(_createUnidades);
 
     // ================= Insertar datos iniciales =================
     for (var combustible in initialCombustibles) {
@@ -98,6 +106,12 @@ class DatabaseHelper {
 
     for (var ingreso in initialTiposIngreso) {
       await db.insert('tipos_ingreso', {'nombre': ingreso});
+    }
+    for (var metodo in initialMetodosPago) {
+      await db.insert('metodos_pago', {'nombre': metodo});
+    }
+    for (var unidad in initialUnidades) {
+      await db.insert('unidades', {'nombre': unidad});
     }
   }
 
@@ -249,6 +263,13 @@ class DatabaseHelper {
     odometro_objetivo REAL,
     notificado INTEGER DEFAULT 0,
     FOREIGN KEY (id_vehiculo) REFERENCES vehiculos(id_vehiculo)
+  );
+  ''';
+
+  static const _createUnidades = '''
+  CREATE TABLE unidades (
+    id_unidad INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL
   );
   ''';
 }

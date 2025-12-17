@@ -17,6 +17,14 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
 
+  final List<String> _titles = const [
+    'Histórico',
+    'Informes',
+    '',
+    'Recordatorios',
+    'Más Opciones',
+  ];
+
   final List<Widget> _pages = const [
     HistoricoPage(),
     InformesPage(),
@@ -49,10 +57,13 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return Scaffold(
+      body: SafeArea(
       child: Column(
         children: [
-          const HomeHeader(),
+          HomeHeader(
+            title: _titles[_currentIndex],
+            ),
           Expanded(child: _pages[_currentIndex]),
           BottomMenu(
             currentIndex: _currentIndex,
@@ -64,6 +75,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -76,9 +88,6 @@ class _AddItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(label),
-    );
+    return ListTile(leading: Icon(icon), title: Text(label));
   }
 }

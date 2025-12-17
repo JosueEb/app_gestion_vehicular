@@ -1,21 +1,31 @@
 import 'package:flutter/material.dart';
 
 class HomeHeader extends StatelessWidget {
-  const HomeHeader({super.key});
+  final String title;
+
+  const HomeHeader({
+    super.key,
+    required this.title,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: const ExcludeSemantics(
-        child: Text(
-          'Gestión Vehicular',
-          style: TextStyle(
-            fontSize: 22,
-            color: Colors.green,
-            backgroundColor: Colors.blue,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: const Color.fromARGB(255, 196, 236, 255),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
