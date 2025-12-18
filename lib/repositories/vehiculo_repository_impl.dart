@@ -9,8 +9,10 @@ class VehiculoRepositoryImpl implements VehiculoRepository {
   @override
   Future<List<Vehiculo>> obtenerVehiculos() async {
     final Database db = await _dbHelper.database;
-    final List<Map<String, dynamic>> maps =
-        await db.query('vehiculos', where: 'activo = 1');
+    final List<Map<String, dynamic>> maps = await db.query(
+      'vehiculos',
+      where: 'activo = 1',
+    );
 
     return maps.map((e) => Vehiculo.fromMap(e)).toList();
   }
@@ -41,5 +43,29 @@ class VehiculoRepositoryImpl implements VehiculoRepository {
       where: 'id_vehiculo = ?',
       whereArgs: [idVehiculo],
     );
+  }
+
+  @override
+  Future<int?> obtenerUltimoKilometraje(int vehiculoId) async {
+    final Database db = await _dbHelper.database;
+
+    final result = await db.rawQuery(
+      '''
+    SELECT IFNULL(odometro, 0) AS odometro
+    FROM movimientos
+    WHERE id_vehiculo = ?
+    ORDER BY fecha DESC
+    LIMIT 1
+    ''',
+      [vehiculoId],
+    );
+
+    if (result.isEmpty) return null;
+
+    final value = result.first['odometro'];
+
+    if (value == null) return null;
+
+    return (value as num).toInt();
   }
 }

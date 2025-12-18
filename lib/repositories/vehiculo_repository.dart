@@ -5,4 +5,5 @@ abstract class VehiculoRepository {
   Future<int> insertarVehiculo(Vehiculo vehiculo);
   Future<int> actualizarVehiculo(Vehiculo vehiculo);
   Future<int> eliminarVehiculo(int idVehiculo);
+  Future<int?> obtenerUltimoKilometraje(int vehiculoId);
 }

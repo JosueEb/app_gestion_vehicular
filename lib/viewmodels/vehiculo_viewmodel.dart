@@ -10,6 +10,7 @@ class VehiculoViewModel extends ChangeNotifier {
   List<Vehiculo> vehiculos = [];
   bool isLoading = false;
   Vehiculo? vehiculoActivo;
+  int? _ultimoKilometraje;
 
   // Future<void> cargarVehiculos() async {
   //   isLoading = true;
@@ -20,26 +21,25 @@ class VehiculoViewModel extends ChangeNotifier {
   //   isLoading = false;
   //   notifyListeners();
   // }
-Future<void> cargarVehiculos() async {
-  vehiculos = await _repository.obtenerVehiculos();
+  Future<void> cargarVehiculos() async {
+    vehiculos = await _repository.obtenerVehiculos();
 
-  final id = await AppPreferences.getVehiculoActivo();
+    final id = await AppPreferences.getVehiculoActivo();
 
-  if (vehiculos.isEmpty) {
-    vehiculoActivo = null;
-  } else if (id == null) {
-    vehiculoActivo = vehiculos.first;
-    await AppPreferences.setVehiculoActivo(vehiculoActivo!.idVehiculo!);
-  } else {
-    vehiculoActivo = vehiculos.firstWhere(
-      (v) => v.idVehiculo == id,
-      orElse: () => vehiculos.first,
-    );
+    if (vehiculos.isEmpty) {
+      vehiculoActivo = null;
+    } else if (id == null) {
+      vehiculoActivo = vehiculos.first;
+      await AppPreferences.setVehiculoActivo(vehiculoActivo!.idVehiculo!);
+    } else {
+      vehiculoActivo = vehiculos.firstWhere(
+        (v) => v.idVehiculo == id,
+        orElse: () => vehiculos.first,
+      );
+    }
+
+    notifyListeners();
   }
-
-  notifyListeners();
-}
-
 
   Future<void> agregarVehiculo(Vehiculo vehiculo) async {
     final id = await _repository.insertarVehiculo(vehiculo);
@@ -54,6 +54,7 @@ Future<void> cargarVehiculos() async {
       color: vehiculo.color,
       odometroInicial: 0,
       activo: true,
+      tamanioTanque: vehiculo.tamanioTanque,
     );
 
     vehiculoActivo = vehiculoConId;
@@ -74,12 +75,30 @@ Future<void> cargarVehiculos() async {
   }
 
   Future<void> obtenerVehiculoActivo() async {
+    if (vehiculos.isEmpty) return;
+
     final id = await AppPreferences.getVehiculoActivo();
     if (id == null) return;
 
     vehiculoActivo = vehiculos.firstWhere(
       (v) => v.idVehiculo == id,
       orElse: () => vehiculos.first,
+    );
+
+    notifyListeners();
+  }
+
+  int? get ultimoKilometraje => _ultimoKilometraje;
+
+  Future<void> cargarUltimoKilometraje() async {
+    if (vehiculoActivo?.idVehiculo == null) {
+      _ultimoKilometraje = null;
+      notifyListeners();
+      return;
+    }
+
+    _ultimoKilometraje = await _repository.obtenerUltimoKilometraje(
+      vehiculoActivo!.idVehiculo!,
     );
     notifyListeners();
   }

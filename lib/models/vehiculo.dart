@@ -8,6 +8,7 @@ class Vehiculo {
   final String? color;
   final double odometroInicial;
   final bool activo;
+  final int tamanioTanque;
 
   Vehiculo({
     this.idVehiculo,
@@ -19,6 +20,7 @@ class Vehiculo {
     this.color,
     this.odometroInicial = 0,
     this.activo = true,
+    required this.tamanioTanque,
   });
 
   Map<String, dynamic> toMap() => {
@@ -31,6 +33,7 @@ class Vehiculo {
         'color': color,
         'odometro_inicial': odometroInicial,
         'activo': activo ? 1 : 0,
+        'tamanio_tanque': tamanioTanque,
       };
 
   factory Vehiculo.fromMap(Map<String, dynamic> map) => Vehiculo(
@@ -43,5 +46,6 @@ class Vehiculo {
         color: map['color'],
         odometroInicial: map['odometro_inicial']?.toDouble() ?? 0,
         activo: (map['activo'] ?? 1) == 1,
+        tamanioTanque: map['tamanio_tanque'],
       );
 }

@@ -42,4 +42,17 @@ class AppPreferences {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_unidadVolumenKey) ?? 'litros';
   }
+
+  /*combustible*/
+  static const _combustibleActivoKey = 'combustible_activo_id';
+
+  static Future<void> setCombustibleActivo(int idCombustible) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_combustibleActivoKey, idCombustible);
+  }
+
+  static Future<int?> getCombustibleActivo() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_combustibleActivoKey) ?? 1;
+  }
 }

@@ -5,7 +5,8 @@ import '../informes/informes_page.dart';
 import '../recordatorios/recordatorios_page.dart';
 import '../mas/mas_page.dart';
 import 'widgets/bottom_menu.dart';
-import 'widgets/home_header.dart';
+import '../shared/app_colors.dart';
+import '../recargas/add_recarga_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -37,19 +38,48 @@ class _HomePageState extends State<HomePage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            _AddItem(icon: Icons.build, label: 'Servicio'),
-            _AddItem(icon: Icons.local_gas_station, label: 'Combustible'),
-            _AddItem(icon: Icons.attach_money, label: 'Gasto'),
-          ],
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _AddItem(
+                icon: Icons.build,
+                label: 'Servicio',
+                onTap: () {
+                  Navigator.pop(context);
+                  // TODO: navegar a agregar servicio
+                },
+              ),
+              _AddItem(
+                icon: Icons.attach_money,
+                label: 'Gasto',
+                onTap: () {
+                  Navigator.pop(context);
+                  // TODO: navegar a agregar gasto
+                },
+              ),
+              _AddItem(
+                icon: Icons.local_gas_station,
+                label: 'Recarga',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddRecargaPage()),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -58,24 +88,28 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-      child: Column(
-        children: [
-          HomeHeader(
-            title: _titles[_currentIndex],
-            ),
-          Expanded(child: _pages[_currentIndex]),
-          BottomMenu(
-            currentIndex: _currentIndex,
-            onTap: (index) {
-              if (index == 2) return;
-              setState(() => _currentIndex = index);
-            },
-            onAdd: _openAddMenu,
+      appBar: AppBar(
+        backgroundColor: AppColors.headerBackground,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          _titles[_currentIndex],
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
           ),
-        ],
+        ),
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
-    ),
+      body: _pages[_currentIndex],
+      bottomNavigationBar: BottomMenu(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          if (index == 2) return;
+          setState(() => _currentIndex = index);
+        },
+        onAdd: _openAddMenu,
+      ),
     );
   }
 }
@@ -83,11 +117,16 @@ class _HomePageState extends State<HomePage> {
 class _AddItem extends StatelessWidget {
   final IconData icon;
   final String label;
+  final VoidCallback onTap;
 
-  const _AddItem({required this.icon, required this.label});
+  const _AddItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(leading: Icon(icon), title: Text(label));
+    return ListTile(leading: Icon(icon), title: Text(label), onTap: onTap);
   }
 }

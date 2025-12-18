@@ -32,4 +32,16 @@ class Movimiento {
         'id_metodo_pago': idMetodoPago,
         'observaciones': observaciones,
       };
+  //fromMap
+  factory Movimiento.fromMap(Map<String, dynamic> map) => Movimiento(
+        idMovimiento: map['id_movimiento'],
+        idVehiculo: map['id_vehiculo'],
+        idUsuario: map['id_usuario'],
+        tipoMovimiento: map['tipo_movimiento'],
+        fecha: DateTime.parse(map['fecha']),
+        odometro: map['odometro'],
+        total: map['total'],
+        idMetodoPago: map['id_metodo_pago'],
+        observaciones: map['observaciones'],
+  );
 }

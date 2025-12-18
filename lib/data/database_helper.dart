@@ -90,6 +90,13 @@ class DatabaseHelper {
     await db.execute(_createMovimientoRuta);
     await db.execute(_createRecordatorios);
     await db.execute(_createUnidades);
+    await db.insert('usuarios', {
+      'nombre': 'Usuario por defecto',
+      'email': 'default@local.app',
+      'password_hash': '', // no importa por ahora
+      'fecha_registro': DateTime.now().toIso8601String(),
+      'activo': 1,
+    });
 
     // ================= Insertar datos iniciales =================
     for (var combustible in initialCombustibles) {
@@ -139,7 +146,8 @@ class DatabaseHelper {
     vin TEXT,
     color TEXT,
     odometro_inicial REAL DEFAULT 0,
-    activo INTEGER DEFAULT 1
+    activo INTEGER DEFAULT 1,
+    tamanio_tanque INTEGER NOT NULL DEFAULT 0
   );
   ''';
 
@@ -237,6 +245,7 @@ class DatabaseHelper {
     cantidad REAL DEFAULT 1,
     precio_unitario REAL NOT NULL,
     subtotal REAL NOT NULL,
+    tanque_lleno INTEGER DEFAULT 0,
     FOREIGN KEY (id_movimiento) REFERENCES movimientos(id_movimiento)
       ON DELETE CASCADE
   );

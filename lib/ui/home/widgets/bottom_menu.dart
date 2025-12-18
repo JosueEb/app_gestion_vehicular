@@ -14,34 +14,40 @@ class BottomMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 70,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 10,
-            color: Colors.black12,
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _Item(icon: Icons.history, index: 0),
-          _Item(icon: Icons.bar_chart, index: 1),
-          _AddButton(onTap: onAdd),
-          _Item(icon: Icons.alarm, index: 3),
-          _Item(icon: Icons.more_horiz, index: 4),
-        ],
+    return SafeArea(
+      top: false,
+      left: false,
+      right: false,
+      child: Container(
+        height: 70,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              blurRadius: 10,
+              color: Colors.black12,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _item(icon: Icons.history, index: 0),
+            _item(icon: Icons.bar_chart, index: 1),
+            _AddButton(onTap: onAdd),
+            _item(icon: Icons.alarm, index: 3),
+            _item(icon: Icons.more_horiz, index: 4),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _Item({required IconData icon, required int index}) {
+  Widget _item({required IconData icon, required int index}) {
     final isActive = index == currentIndex;
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque, // 👈 mejora toque
       onTap: () => onTap(index),
       child: Icon(
         icon,
@@ -60,12 +66,13 @@ class _AddButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
         width: 48,
         height: 48,
-        decoration: BoxDecoration(
-          color: Colors.black,
+        decoration: const BoxDecoration(
+          color: Color.fromARGB(255, 196, 236, 255),
           shape: BoxShape.circle,
         ),
         child: const Icon(Icons.add, color: Colors.white),

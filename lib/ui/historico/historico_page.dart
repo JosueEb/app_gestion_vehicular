@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/vehiculo_viewmodel.dart';
+import '../vehiculos/listado_vehiculo_page.dart';
 
 class HistoricoPage extends StatefulWidget {
   const HistoricoPage({super.key});
@@ -39,8 +40,10 @@ class _HistoricoPageState extends State<HistoricoPage> {
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
             onTap: () {
-              // TODO: abrir selector de vehículos
-              // debugPrint('Seleccionar vehículo');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ListadoVehiculoPage()),
+              );
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

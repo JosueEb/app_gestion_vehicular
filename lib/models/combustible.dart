@@ -1,3 +1,4 @@
+/*combustible.dart*/
 class Combustible {
   final int? idCombustible;
   final String nombre;
@@ -8,4 +9,9 @@ class Combustible {
     'id_combustible': idCombustible,
     'nombre': nombre,
   };
+  //FromMap
+  factory Combustible.fromMap(Map<String, dynamic> map) => Combustible(
+    idCombustible: map['id_combustible'],
+    nombre: map['nombre'],
+  );
 }

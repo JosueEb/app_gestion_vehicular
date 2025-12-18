@@ -24,6 +24,8 @@ class _AddVehiculoPageState extends State<AddVehiculoPage> {
   final _vin = TextEditingController();
   final _color = TextEditingController();
   final _odometroInicial = TextEditingController();
+  final _tamanioTanque = TextEditingController();
+
 
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
@@ -39,6 +41,7 @@ class _AddVehiculoPageState extends State<AddVehiculoPage> {
         vin: _vin.text,
         color: _color.text,
         odometroInicial: double.parse(_odometroInicial.text),
+        tamanioTanque: int.parse(_tamanioTanque.text),
       ),
     );
 
@@ -63,6 +66,7 @@ class _AddVehiculoPageState extends State<AddVehiculoPage> {
     _vin.dispose();
     _color.dispose();
     _odometroInicial.dispose();
+    _tamanioTanque.dispose();
     super.dispose();
   }
 
@@ -71,59 +75,83 @@ class _AddVehiculoPageState extends State<AddVehiculoPage> {
     return Scaffold(
       appBar: widget.isFirst
           ? null
-          : AppBar(title: const Text('Agregar vehículo')),
+          : AppBar(
+              title: const Text('Agregar vehículo'),
+              backgroundColor: const Color.fromARGB(255, 196, 236, 255),
+              surfaceTintColor: Colors.transparent,
+            ),
+
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              const Text(
-                'Registra tu vehículo',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              TextFormField(
-                controller: _marca,
-                decoration: const InputDecoration(labelText: 'Marca'),
-                validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
-              ),
-              TextFormField(
-                controller: _modelo,
-                decoration: const InputDecoration(labelText: 'Modelo'),
-                validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
-              ),
-              TextFormField(
-                controller: _anio,
-                decoration: const InputDecoration(labelText: 'Año'),
-                keyboardType: TextInputType.number,
-                validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
-              ),
-              TextFormField(
-                controller: _placas,
-                decoration: const InputDecoration(labelText: 'Placas'),
-                validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
-              ),
-              TextFormField(
-                controller: _vin,
-                decoration: const InputDecoration(labelText: 'VIN'),
-                validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
-              ),
-              TextFormField(
-                controller: _color,
-                decoration: const InputDecoration(labelText: 'Color'),
-                validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
-              ),
-              TextFormField(
-                controller: _odometroInicial,
-                decoration: const InputDecoration(labelText: 'Odometro actual'),
-                validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
-              ),
-              const Spacer(),
-              ElevatedButton(
-                onPressed: _guardar,
-                child: const Text('Guardar vehículo'),
-              ),
-            ],
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Registra tu vehículo',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _marca,
+                  decoration: const InputDecoration(labelText: 'Marca'),
+                  validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
+                ),
+                TextFormField(
+                  controller: _modelo,
+                  decoration: const InputDecoration(labelText: 'Modelo'),
+                  validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
+                ),
+                TextFormField(
+                  controller: _anio,
+                  decoration: const InputDecoration(labelText: 'Año'),
+                  keyboardType: TextInputType.number,
+                  validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
+                ),
+                TextFormField(
+                  controller: _placas,
+                  decoration: const InputDecoration(labelText: 'Placas'),
+                  validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
+                ),
+                TextFormField(
+                  controller: _vin,
+                  decoration: const InputDecoration(labelText: 'VIN'),
+                  validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
+                ),
+                TextFormField(
+                  controller: _color,
+                  decoration: const InputDecoration(labelText: 'Color'),
+                  validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
+                ),
+                TextFormField(
+                  controller: _odometroInicial,
+                  decoration: const InputDecoration(
+                    labelText: 'Odómetro actual',
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
+                ),
+                TextFormField(
+                  controller: _tamanioTanque,
+                  decoration: const InputDecoration(
+                    labelText: 'Tamaño del tanque',
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (v) => v!.isEmpty ? 'Campo requerido' : null,
+                ),
+
+                const SizedBox(height: 24),
+
+                ElevatedButton(
+                  onPressed: _guardar,
+                  child: const Text('Guardar vehículo'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
