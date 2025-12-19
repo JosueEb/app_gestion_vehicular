@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../viewmodels/vehiculo_viewmodel.dart';
+import '../../viewmodels/historico_viewmodel.dart';
 import '../vehiculos/listado_vehiculo_page.dart';
+import 'widgets/historico_timeline.dart';
 
 class HistoricoPage extends StatefulWidget {
   const HistoricoPage({super.key});
@@ -11,22 +14,28 @@ class HistoricoPage extends StatefulWidget {
 }
 
 class _HistoricoPageState extends State<HistoricoPage> {
-  // @override
-  // void initState() {
-  //   super.initState();
+  @override
+  void initState() {
+    super.initState();
 
-  //   // ⚠️ Importante: post-frame
-  //   WidgetsBinding.instance.addPostFrameCallback((_) {
-  //     context.read<VehiculoViewModel>().cargarVehiculos();
-  //   });
-  // }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final vehiculo = context.read<VehiculoViewModel>().vehiculoActivo;
+
+      if (vehiculo != null) {
+        context.read<HistoricoViewModel>().cargarHistorico(
+          vehiculo.idVehiculo!,
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<VehiculoViewModel>();
-    final vehiculo = vm.vehiculoActivo;
+    final vehiculoVM = context.watch<VehiculoViewModel>();
+    final historicoVM = context.watch<HistoricoViewModel>();
+    final vehiculo = vehiculoVM.vehiculoActivo;
 
-    if (vm.vehiculos.isEmpty) {
+    if (vehiculoVM.vehiculos.isEmpty) {
       return const Center(child: Text('No hay vehículos registrados'));
     }
 
@@ -35,15 +44,28 @@ class _HistoricoPageState extends State<HistoricoPage> {
       children: [
         const SizedBox(height: 8),
 
+        /// SELECTOR DE VEHÍCULO
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ListadoVehiculoPage()),
               );
+
+              if (!mounted) return;
+
+              final nuevoVehiculo = context
+                  .read<VehiculoViewModel>()
+                  .vehiculoActivo;
+
+              if (nuevoVehiculo != null) {
+                context.read<HistoricoViewModel>().cargarHistorico(
+                  nuevoVehiculo.idVehiculo!,
+                );
+              }
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -58,7 +80,6 @@ class _HistoricoPageState extends State<HistoricoPage> {
                       vehiculo != null
                           ? '${vehiculo.marca} ${vehiculo.modelo}'
                           : 'Selecciona un vehículo',
-                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
                   const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
@@ -68,10 +89,24 @@ class _HistoricoPageState extends State<HistoricoPage> {
           ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
-        /// resto del histórico
-        const Expanded(child: Center(child: Text('Aquí va el histórico'))),
+        /// HISTÓRICO
+        Expanded(
+          child: Builder(
+            builder: (_) {
+              if (historicoVM.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (historicoVM.movimientos.isEmpty) {
+                return const Center(child: Text('Sin registros'));
+              }
+
+              return HistoricoTimeline(data: historicoVM.agrupadoPorMes);
+            },
+          ),
+        ),
       ],
     );
   }

@@ -12,15 +12,14 @@ class AppColors {
   static const Color surface = Colors.white;
 
   // 🟦 Headers / Top bars
-  static const Color headerBackground =
-      Color.fromARGB(255, 196, 236, 255);
+  static const Color headerBackground = Color.fromARGB(255, 196, 236, 255);
 
-  static const Color headerBackgroundRecarga =
-    Color(0xFFF09C38);
+  static const Color headerBackgroundRecarga = Color(0xFFF09C38);
 
-static const Color headerNotificationBarRecarga =
-    Color(0xFFE58231);
+  static const Color headerNotificationBarRecarga = Color(0xFFE58231);
 
+  static const Color headerNotificationBarServicio = Colors.brown;
+  static const Color headerBackgroundServicio = Colors.brown;
 
   // 📝 Texto
   static const Color textPrimary = Color(0xFF212121);
@@ -36,6 +35,4 @@ static const Color headerNotificationBarRecarga =
   // ➕ Acciones
   static const Color fab = Color(0xFF000000);
   static const Color divider = Color(0xFFE0E0E0);
-
-
 }

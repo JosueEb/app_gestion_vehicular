@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '/ui/servicios/add_servicio_page.dart';
 import '../historico/historico_page.dart';
 import '../informes/informes_page.dart';
 import '../recordatorios/recordatorios_page.dart';
@@ -56,7 +57,10 @@ class _HomePageState extends State<HomePage> {
                 label: 'Servicio',
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: navegar a agregar servicio
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddServicioPage()),
+                  );
                 },
               ),
               _AddItem(
@@ -64,7 +68,7 @@ class _HomePageState extends State<HomePage> {
                 label: 'Gasto',
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: navegar a agregar gasto
+                  // // TODO: navegar a agregar gasto
                 },
               ),
               _AddItem(

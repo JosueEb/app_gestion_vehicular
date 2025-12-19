@@ -9,7 +9,6 @@ class MovimientoDetalle {
   final double subtotal;
   final bool tanqueLleno;
 
-
   MovimientoDetalle({
     this.idDetalle,
     this.idMovimiento,
@@ -33,6 +32,17 @@ class MovimientoDetalle {
     'subtotal': subtotal,
     'tanque_lleno': tanqueLleno ? 1 : 0,
   };
+  Map<String, dynamic> toMapWithMovimiento(int idMovimiento) => {
+    'id_movimiento': idMovimiento,
+    'tipo_detalle': tipoDetalle,
+    'id_referencia': idReferencia,
+    'descripcion': descripcion,
+    'cantidad': cantidad,
+    'precio_unitario': precioUnitario,
+    'subtotal': subtotal,
+    'tanque_lleno': tanqueLleno ? 1 : 0,
+  };
+
   //fromMap
   factory MovimientoDetalle.fromMap(Map<String, dynamic> map) =>
       MovimientoDetalle(

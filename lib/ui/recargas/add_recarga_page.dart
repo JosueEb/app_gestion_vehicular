@@ -1,9 +1,12 @@
+import 'package:app_gestion_vehicular/viewmodels/combustible_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
 import '../shared/app_colors.dart';
 import '../../viewmodels/recarga_viewmodel.dart';
 import '../../viewmodels/vehiculo_viewmodel.dart';
+import '../../models/combustible.dart';
 
 class AddRecargaPage extends StatefulWidget {
   const AddRecargaPage({super.key});
@@ -13,15 +16,6 @@ class AddRecargaPage extends StatefulWidget {
 }
 
 class _AddRecargaPageState extends State<AddRecargaPage> {
-  @override
-  void initState() {
-    super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<VehiculoViewModel>().cargarUltimoKilometraje();
-    });
-  }
-
   final _formKey = GlobalKey<FormState>();
 
   DateTime _fecha = DateTime.now();
@@ -34,6 +28,18 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
   final _obsCtrl = TextEditingController();
 
   bool _tanqueLleno = false;
+  bool _precioInicialAsignado = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<VehiculoViewModel>().cargarUltimoKilometraje();
+      context.read<CombustibleViewModel>().cargarCombustibles();
+      context.read<CombustibleViewModel>().obtenerUltimoCostoLitro();
+    });
+  }
 
   @override
   void dispose() {
@@ -67,7 +73,10 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
   }
 
   Future<void> _pickHora() async {
-    final picked = await showTimePicker(context: context, initialTime: _hora);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _hora,
+    );
 
     if (picked != null) {
       setState(() {
@@ -86,9 +95,7 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
   void _recalcularTotal() {
     final litros = double.tryParse(_litrosCtrl.text) ?? 0;
     final precio = double.tryParse(_precioCtrl.text) ?? 0;
-
-    final total = litros * precio;
-    _totalCtrl.text = total.toStringAsFixed(2);
+    _totalCtrl.text = (litros * precio).toStringAsFixed(2);
   }
 
   Future<void> _guardar() async {
@@ -96,13 +103,22 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
 
     final recargaVM = context.read<RecargaViewModel>();
     final vehiculoVM = context.read<VehiculoViewModel>();
+    final combustibleVM = context.read<CombustibleViewModel>();
 
     final vehiculoActivo = vehiculoVM.vehiculoActivo;
+    final combustible = combustibleVM.combustibleActivo;
 
     if (vehiculoActivo == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No hay vehículo activo')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay vehículo activo')),
+      );
+      return;
+    }
+
+    if (combustible == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Seleccione un combustible')),
+      );
       return;
     }
 
@@ -112,12 +128,11 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
       litros: double.parse(_litrosCtrl.text),
       precioUnitario: double.parse(_precioCtrl.text),
       odometro: double.parse(_odometroCtrl.text),
-      idCombustible: 1,
+      idCombustible: combustible.idCombustible!,
       observaciones: _obsCtrl.text,
       tanqueLleno: _tanqueLleno,
     );
 
-    // 🔁 refrescar kilometraje
     await vehiculoVM.cargarUltimoKilometraje();
 
     if (!mounted) return;
@@ -126,16 +141,28 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<RecargaViewModel>();
+    final recargaVM = context.watch<RecargaViewModel>();
     final vehiculoVM = context.watch<VehiculoViewModel>();
+    final combustibleVM = context.watch<CombustibleViewModel>();
+
+    final ultimoPrecio = combustibleVM.ultimoCostoLitro;
     final ultimoKm = vehiculoVM.ultimoKilometraje;
-    // final vehiculoActivo = vehiculoVM.vehiculoActivo;
+
+    // Precargar último precio SOLO una vez
+    if (!_precioInicialAsignado && ultimoPrecio != null) {
+      _precioCtrl.text = ultimoPrecio.toStringAsFixed(2);
+      _precioInicialAsignado = true;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _recalcularTotal();
+      });
+    }
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: AppColors.headerNotificationBarRecarga,
-        statusBarIconBrightness: Brightness.light, // Android
-        statusBarBrightness: Brightness.dark, // iOS
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
         appBar: AppBar(
@@ -176,59 +203,84 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
                 const SizedBox(height: 16),
 
                 /// ODÓMETRO
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextFormField(
-                      controller: _odometroCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Odómetro',
-                        suffixText: 'km',
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (v) {
-                        if (v == null || v.isEmpty) {
-                          return 'Campo requerido';
-                        }
-
-                        final actual = double.tryParse(v);
-                        if (actual == null) {
-                          return 'Valor inválido';
-                        }
-
-                        if (ultimoKm != null && actual < ultimoKm) {
-                          return 'No puede ser menor a $ultimoKm km';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    if (ultimoKm != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Último registrado: $ultimoKm km',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ],
+                TextFormField(
+                  controller: _odometroCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Odómetro',
+                    suffixText: 'km',
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Campo requerido';
+                    final actual = double.tryParse(v);
+                    if (actual == null) return 'Valor inválido';
+                    if (ultimoKm != null && actual < ultimoKm) {
+                      return 'No puede ser menor a $ultimoKm km';
+                    }
+                    return null;
+                  },
                 ),
 
-                /// PRECIO POR LITRO
+                if (ultimoKm != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Último registrado: $ultimoKm km',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ),
+
+                const SizedBox(height: 12),
+
+                /// COMBUSTIBLE
+                Consumer<CombustibleViewModel>(
+                  builder: (_, vm, __) {
+                    return DropdownButtonFormField<Combustible>(
+                      value: vm.combustibleActivo,
+                      decoration: const InputDecoration(
+                        labelText: 'Tipo de combustible',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: vm.combustibles
+                          .map(
+                            (c) => DropdownMenuItem(
+                              value: c,
+                              child: Text(c.nombre),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (c) {
+                        if (c != null) {
+                          vm.seleccionarCombustible(c);
+                          _precioInicialAsignado = false;
+                          vm.obtenerUltimoCostoLitro();
+                        }
+                      },
+                      validator: (v) =>
+                          v == null ? 'Seleccione un combustible' : null,
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 12),
+
+                /// PRECIO
                 TextFormField(
                   controller: _precioCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Precio por litro',
                     prefixText: '\$ ',
+                    helperText: ultimoPrecio != null
+                        ? 'Último precio registrado'
+                        : null,
                   ),
                   keyboardType: TextInputType.number,
                   onChanged: (_) => _recalcularTotal(),
                   validator: (v) =>
                       v == null || v.isEmpty ? 'Campo requerido' : null,
                 ),
+
+                const SizedBox(height: 12),
 
                 /// LITROS
                 TextFormField(
@@ -243,11 +295,11 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
                 /// TOTAL
                 TextFormField(
                   controller: _totalCtrl,
+                  readOnly: true,
                   decoration: const InputDecoration(
                     labelText: 'Total',
                     prefixText: '\$ ',
                   ),
-                  readOnly: true,
                 ),
 
                 const SizedBox(height: 12),
@@ -255,7 +307,6 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
                 /// TANQUE LLENO
                 SwitchListTile(
                   title: const Text('Tanque lleno'),
-                  //color
                   activeColor: AppColors.headerBackgroundRecarga,
                   value: _tanqueLleno,
                   onChanged: (v) => setState(() => _tanqueLleno = v),
@@ -264,7 +315,8 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
                 /// OBSERVACIONES
                 TextFormField(
                   controller: _obsCtrl,
-                  decoration: const InputDecoration(labelText: 'Observaciones'),
+                  decoration:
+                      const InputDecoration(labelText: 'Observaciones'),
                   maxLines: 3,
                 ),
 
@@ -274,8 +326,9 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: vm.isLoading ? null : _guardar,
-                    child: vm.isLoading
+                    onPressed:
+                        recargaVM.isLoading ? null : _guardar,
+                    child: recargaVM.isLoading
                         ? const CircularProgressIndicator()
                         : const Text('Guardar recarga'),
                   ),
