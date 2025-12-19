@@ -8,4 +8,13 @@ abstract class RecargaRepository {
   });
 
   Future<List<Movimiento>> obtenerRecargasPorVehiculo(int idVehiculo);
+
+  Future<void> actualizarRecarga({
+    required Movimiento movimiento,
+    required MovimientoDetalle detalle,
+  });
+
+  Future<void> eliminarRecarga(int idMovimiento);
+
+  Future<Map<String, dynamic>?> obtenerRecargaPorId(int idMovimiento);
 }

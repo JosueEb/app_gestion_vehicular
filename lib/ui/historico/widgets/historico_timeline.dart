@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../../viewmodels/historico_viewmodel.dart';
 import 'timeline_item.dart';
 
+// historico_timeline.dart
+
 class HistoricoTimeline extends StatelessWidget {
   const HistoricoTimeline({super.key});
 
@@ -16,72 +18,41 @@ class HistoricoTimeline extends StatelessWidget {
 
     final agrupado = vm.agrupadoPorMes;
     final entries = agrupado.entries.toList();
-    // final allItems = vm.movimientos;
-    // final ultimoMovimiento = allItems.isNotEmpty ? allItems.last : null;
 
-    // return ListView(
-    //   padding: const EdgeInsets.all(16),
-    //   children: agrupado.entries.map((entry) {
-    //     final mes = entry.key;
-    //     final items = entry.value;
-
-    //     return Column(
-    //       crossAxisAlignment: CrossAxisAlignment.start,
-    //       children: [
-    //         /// ───── MES ─────
-    //         Padding(
-    //           padding: const EdgeInsets.symmetric(vertical: 12),
-    //           child: Row(
-    //             crossAxisAlignment: CrossAxisAlignment.center,
-    //             children: [
-    //               const SizedBox(width: 60), // 👈 ancho del timeline
-    //               Text(
-    //                 mes,
-    //                 style: TextStyle(
-    //                   fontSize: 13,
-    //                   fontWeight: FontWeight.bold,
-    //                   letterSpacing: 0.8,
-    //                   color: Colors.grey.shade600,
-    //                 ),
-    //               ),
-    //             ],
-    //           ),
-    //         ),
-
-    //         /// ───── ITEMS ─────
-    //         ...items.map(
-    //           (mov) => TimelineItem(
-    //             movimiento: mov,
-    //             isLast: mov == ultimoMovimiento,
-    //           ),
-    //         ),
-    //       ],
-    //     );
-    //   }).toList(),
-    // );
-    return ListView(
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      children: List.generate(entries.length, (index) {
+      itemCount: entries.length,
+      itemBuilder: (context, index) {
         final entry = entries[index];
         final mes = entry.key;
         final items = entry.value;
 
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            /// ───── HEADER DEL MES ─────
             TimelineMonthHeader(
               mes: mes,
-              isFirst: index == 0, // El primer mes no tiene línea arriba
+              isFirst: index == 0,
             ),
-            ...List.generate(items.length, (i) {
-              // Es el último absoluto si es el último item del último mes
-              final bool isLastAbsolute =
-                  (index == entries.length - 1) && (i == items.length - 1);
 
-              return TimelineItem(movimiento: items[i], isLast: isLastAbsolute);
-            }),
+            /// ───── LISTA DE ITEMS ─────
+            ...List.generate(
+              items.length,
+              (i) {
+                // Verificamos si es el último absoluto de toda la lista
+                final bool isLastAbsolute = 
+                    (index == entries.length - 1) && (i == items.length - 1);
+                
+                return TimelineItem(
+                  movimiento: items[i],
+                  isLast: isLastAbsolute,
+                );
+              },
+            ),
           ],
         );
-      }),
+      },
     );
   }
 }
