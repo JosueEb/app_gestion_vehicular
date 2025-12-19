@@ -13,27 +13,29 @@ class HistoricoRepositoryImpl implements HistoricoRepository {
   }) async {
     final Database db = await _dbHelper.database;
 
-    final rows = await db.rawQuery('''
-      SELECT
-        m.id_movimiento,
-        m.tipo_movimiento,
-        m.fecha,
-        m.odometro,
-        m.total,
-
-        md.id_detalle,
-        md.tipo_detalle,
-        md.id_referencia,
-        md.descripcion,
-        md.cantidad,
-        md.precio_unitario,
-        md.subtotal
-
-      FROM movimientos m
-      LEFT JOIN movimiento_detalle md
-        ON md.id_movimiento = m.id_movimiento
-      WHERE m.id_vehiculo = ?
-      ORDER BY m.fecha DESC
+    final rows = await db.rawQuery(
+      '''
+        SELECT
+            m.id_movimiento,
+            m.tipo_movimiento,
+            m.fecha,
+            m.odometro,
+            -- CORRECCIÓN: Sintaxis CASE WHEN y Subconsulta para sumar
+            CASE
+                WHEN m.tipo_movimiento = 'servicio' THEN (SELECT SUM(subtotal) FROM movimiento_detalle WHERE id_movimiento = m.id_movimiento)
+                ELSE m.total
+            END as total,
+            md.id_detalle,
+            md.tipo_detalle,
+            md.id_referencia,
+            md.descripcion,
+            md.cantidad,
+            md.precio_unitario,
+            md.subtotal
+        FROM movimientos m
+        LEFT JOIN movimiento_detalle md ON md.id_movimiento = m.id_movimiento
+        WHERE m.id_vehiculo = ?
+        ORDER BY m.fecha DESC;
     ''', [vehiculoId]);
 
     final Map<int, MovimientoHistorico> map = {};

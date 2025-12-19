@@ -14,68 +14,75 @@ class BottomMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      left: false,
-      right: false,
-      child: Container(
-        height: 70,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              blurRadius: 10,
-              color: Colors.black12,
+    return Container(
+      decoration: const BoxDecoration(
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 10),
+        ],
+      ),
+      child: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          // Color del óvalo de selección
+          indicatorColor: const Color(0xFFE0F7FA), 
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const TextStyle(
+                fontSize: 12, 
+                fontWeight: FontWeight.bold, 
+                color: Color(0xFF006064),
+              );
+            }
+            return const TextStyle(fontSize: 12, color: Colors.grey);
+          }),
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const IconThemeData(color: Color(0xFF006064));
+            }
+            return const IconThemeData(color: Colors.grey);
+          }),
+        ),
+        child: NavigationBar(
+          selectedIndex: currentIndex,
+          onDestinationSelected: (index) {
+            if (index == 2) {
+              onAdd(); // Botón central de acción
+            } else {
+              onTap(index);
+            }
+          },
+          backgroundColor: Colors.white,
+          height: 80,
+          destinations: [
+            const NavigationDestination(
+              icon: Icon(Icons.format_list_bulleted),
+              label: 'Histórico',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.show_chart),
+              label: 'Informes',
+            ),
+            // Botón central estilizado
+            NavigationDestination(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF00ACC1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.add, color: Colors.white, size: 30),
+              ),
+              label: '',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.alarm),
+              label: 'Recordatorio',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.more_horiz),
+              label: 'Más',
             ),
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _item(icon: Icons.history, index: 0),
-            _item(icon: Icons.bar_chart, index: 1),
-            _AddButton(onTap: onAdd),
-            _item(icon: Icons.alarm, index: 3),
-            _item(icon: Icons.more_horiz, index: 4),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _item({required IconData icon, required int index}) {
-    final isActive = index == currentIndex;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque, // 👈 mejora toque
-      onTap: () => onTap(index),
-      child: Icon(
-        icon,
-        size: 26,
-        color: isActive ? Colors.black : Colors.black45,
-      ),
-    );
-  }
-}
-
-class _AddButton extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _AddButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: const BoxDecoration(
-          color: Color.fromARGB(255, 196, 236, 255),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

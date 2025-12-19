@@ -32,82 +32,78 @@ class _HistoricoPageState extends State<HistoricoPage> {
   @override
   Widget build(BuildContext context) {
     final vehiculoVM = context.watch<VehiculoViewModel>();
-    final historicoVM = context.watch<HistoricoViewModel>();
     final vehiculo = vehiculoVM.vehiculoActivo;
 
     if (vehiculoVM.vehiculos.isEmpty) {
-      return const Center(child: Text('No hay vehículos registrados'));
+      return const Scaffold(
+        body: Center(child: Text('No hay vehículos registrados')),
+      );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 8),
+    return Scaffold(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
 
-        /// SELECTOR DE VEHÍCULO
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ListadoVehiculoPage()),
-              );
+          /// SELECTOR DE VEHÍCULO
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () async {
+                // 1. Opcional: Guardamos la referencia al Navigator antes del async
+                final navigator = Navigator.of(context);
+                // 2. Opcional: Guardamos referencias a los ViewModels para no depender del context después
+                final vehiculoVM = context.read<VehiculoViewModel>();
+                final historicoVM = context.read<HistoricoViewModel>();
 
-              if (!mounted) return;
-
-              final nuevoVehiculo = context
-                  .read<VehiculoViewModel>()
-                  .vehiculoActivo;
-
-              if (nuevoVehiculo != null) {
-                context.read<HistoricoViewModel>().cargarHistorico(
-                  nuevoVehiculo.idVehiculo!,
-                );
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade400),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      vehiculo != null
-                          ? '${vehiculo.marca} ${vehiculo.modelo}'
-                          : 'Selecciona un vehículo',
-                    ),
+                await navigator.push(
+                  MaterialPageRoute(
+                    builder: (_) => const ListadoVehiculoPage(),
                   ),
-                  const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-                ],
+                );
+                // Verificamos si el State todavía está montado
+                if (!mounted) return;
+
+                // Ahora usamos las referencias que ya teníamos o el context de forma segura
+                final nuevoVehiculo = vehiculoVM.vehiculoActivo;
+
+                if (nuevoVehiculo != null) {
+                  historicoVM.cargarHistorico(nuevoVehiculo.idVehiculo!);
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade400),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        vehiculo != null
+                            ? '${vehiculo.marca} ${vehiculo.modelo}'
+                            : 'Selecciona un vehículo',
+                      ),
+                    ),
+                    const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
 
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-        /// HISTÓRICO
-        Expanded(
-          child: Builder(
-            builder: (_) {
-              if (historicoVM.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (historicoVM.movimientos.isEmpty) {
-                return const Center(child: Text('Sin registros'));
-              }
-
-              return HistoricoTimeline(data: historicoVM.agrupadoPorMes);
-            },
-          ),
-        ),
-      ],
+          /// HISTÓRICO (timeline maneja todo)
+          const Expanded(child: HistoricoTimeline()),
+        ],
+      ),
     );
   }
 }

@@ -1,133 +1,195 @@
 import 'package:flutter/material.dart';
 import '../../../models/historico_item_ui.dart';
+import 'package:intl/intl.dart';
 
-class HistoricoTimelineItem extends StatelessWidget {
+class TimelineItem extends StatelessWidget {
   final MovimientoHistorico movimiento;
-  final bool isFirst;
   final bool isLast;
 
-  const HistoricoTimelineItem({
+  const TimelineItem({
     super.key,
     required this.movimiento,
-    required this.isFirst,
-    required this.isLast,
+    this.isLast = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        /// COLUMNA TIMELINE
-        Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: Column(
-            children: [
-              Container(
-                width: 2,
-                height: isFirst ? 12 : 24,
-                color: Colors.grey.shade300,
-              ),
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: _colorByTipo(),
-                  shape: BoxShape.circle,
+    final dateFormat = DateFormat('dd MMM', 'es');
+
+    return IntrinsicHeight(
+      // Para que la línea vertical se ajuste al contenido
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          /// ───── COLUMNA DEL TIMELINE (CARRETERA) ─────
+          SizedBox(
+            width: 60,
+            child: Column(
+              children: [
+                // 1. LÍNEA SUPERIOR (Para conectar con el mes o item anterior)
+                Container(
+                  width: 12,
+                  height:
+                      10, // Ajusta este alto según el padding del texto del mes
+                  color: Colors.grey.shade700,
+                  child: Center(
+                    child: Container(width: 2, color: Colors.white54),
+                  ),
                 ),
-              ),
-              Container(
-                width: 2,
-                height: isLast ? 12 : 48,
-                color: Colors.grey.shade300,
-              ),
-            ],
-          ),
-        ),
 
-        const SizedBox(width: 12),
+                // 2. ICONO
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: _colorPorTipo(),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(_iconoPorTipo(), color: Colors.white, size: 20),
+                ),
 
-        /// CARD
-        Expanded(
-          child: Card(
-            margin: const EdgeInsets.only(
-                right: 16, bottom: 12),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: _ContenidoMovimiento(
-                movimiento: movimiento,
-              ),
+                // 3. LÍNEA INFERIOR
+                Expanded(
+                  child: Container(
+                    width: 12,
+                    // Solo ocultamos la línea si es el ÚLTIMO item de TODA la lista
+                    color: isLast ? Colors.transparent : Colors.grey.shade700,
+                    child: isLast
+                        ? null
+                        : Center(
+                            child: Container(width: 2, color: Colors.white54),
+                          ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-      ],
+
+          /// ───── CONTENIDO DEL ITEM ─────
+          Expanded(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 8,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              movimiento.tipo,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            if (movimiento.tipo.toLowerCase() == 'combustible')
+                              Text(
+                                "Gasolinera",
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.speed, size: 14, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${movimiento.odometro.toStringAsFixed(0)} km',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            dateFormat.format(movimiento.fecha).toLowerCase(),
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            NumberFormat.currency(
+                              locale: 'es',
+                              symbol: "MXN",
+                            ).format(movimiento.total),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1), // Línea divisoria sutil
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Color _colorByTipo() {
-    switch (movimiento.tipo) {
+  IconData _iconoPorTipo() {
+    switch (movimiento.tipo.toLowerCase()) {
       case 'combustible':
-        return Colors.green;
+        return Icons.local_gas_station;
       case 'servicio':
-        return Colors.blue;
+        return Icons.oil_barrel;
+      case 'gasto':
+        return Icons.credit_card;
+      case 'ingreso':
+        return Icons.credit_card;
+      case 'lista de verificación':
+        return Icons.checklist;
       default:
-        return Colors.grey;
+        return Icons.directions_car;
     }
   }
-}
 
-class _ContenidoMovimiento extends StatelessWidget {
-  final MovimientoHistorico movimiento;
-
-  const _ContenidoMovimiento({required this.movimiento});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        /// TÍTULO + TOTAL
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              movimiento.tipo.toUpperCase(),
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            Text(
-              '\$${movimiento.total.toStringAsFixed(2)}',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 4),
-
-        /// FECHA + KM
-        Text(
-          '${_fmtFecha(movimiento.fecha)} • ${movimiento.odometro.toStringAsFixed(0)} km',
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: Colors.grey),
-        ),
-
-        const SizedBox(height: 8),
-
-        /// DETALLES
-        ...movimiento.detalles.map(
-          (d) => Text(
-            '• ${d.descripcion ?? d.tipoDetalle}',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ),
-      ],
-    );
+  Color _colorPorTipo() {
+    switch (movimiento.tipo.toLowerCase()) {
+      case 'combustible':
+        return Colors.orange;
+      case 'servicio':
+        return Color(0xFF795548);
+      case 'ruta':
+        return Color(0xFFE57373);
+      case 'gasto':
+        return Color(0xFF607D8B);
+      case 'ingreso':
+        return Colors.lightGreen;
+      case 'lista de verificación':
+        return Colors.blue;
+      default:
+        return Colors.blueGrey;
+    }
   }
-
-  String _fmtFecha(DateTime f) =>
-      '${f.day}/${f.month}/${f.year}';
 }
