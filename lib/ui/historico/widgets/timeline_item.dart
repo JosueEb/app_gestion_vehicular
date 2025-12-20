@@ -241,17 +241,11 @@ class TimelineItem extends StatelessWidget {
                                       ),
                                       IconButton(
                                         onPressed: () async {
-                                          final confirm =
-                                              await _confirmarEliminar(
-                                                context,
-                                                movimiento.tipo,
-                                              );
-                                          if (confirm) {
-                                            await _manejarEliminacion(
-                                              context,
-                                              movimiento,
-                                            );
-                                          }
+                                          // Simplemente llama al método, él ya tiene la lógica de confirmación adentro
+                                          await _manejarEliminacion(
+                                            context,
+                                            movimiento,
+                                          );
                                         },
                                         icon: const Icon(Icons.delete_outline),
                                       ),

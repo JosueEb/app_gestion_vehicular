@@ -7,6 +7,7 @@ import '../../models/tipo_servicio.dart';
 import '../../viewmodels/vehiculo_viewmodel.dart';
 import '../../viewmodels/servicio_viewmodel.dart';
 import '../../viewmodels/servicio_movimiento_viewmodel.dart';
+import 'add_tipo_servicio_page.dart';
 
 class AddServicioPage extends StatefulWidget {
   const AddServicioPage({super.key});
@@ -584,6 +585,13 @@ class _SeleccionarServiciosPageState extends State<SeleccionarServiciosPage> {
           ),
         ],
       ),
+
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF009688), // mismo color del header
+        child: const Icon(Icons.add),
+        onPressed: () => _abrirAltaServicio(context),
+      ),
+
       body: ListView.builder(
         itemCount: _items.length,
         itemBuilder: (context, index) {
@@ -622,5 +630,39 @@ class _SeleccionarServiciosPageState extends State<SeleccionarServiciosPage> {
         },
       ),
     );
+  }
+
+  void _abrirAltaServicio(BuildContext context) async {
+    final creado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddTipoServicioPage()),
+    );
+
+    if (creado != true) return;
+
+    await context.read<ServicioViewModel>().cargarServicios();
+
+    final serviciosActuales = context.read<ServicioViewModel>().servicios;
+
+    setState(() {
+      _items = serviciosActuales.map((s) {
+        final previo = _items.where(
+          (i) => i.servicio.idTipoServicio == s.idTipoServicio,
+        );
+
+        if (previo.isNotEmpty) {
+          final old = previo.first;
+
+          return ServicioSeleccionable(
+            servicio: s,
+            seleccionado: old.seleccionado,
+            precioInicial: double.tryParse(old.precioCtrl.text),
+          );
+        }
+
+        // 🆕 Servicio nuevo
+        return ServicioSeleccionable(servicio: s);
+      }).toList();
+    });
   }
 }

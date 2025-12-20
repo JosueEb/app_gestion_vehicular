@@ -37,4 +37,21 @@ class ServicioViewModel extends ChangeNotifier {
     isLoading = false;
     notifyListeners();
   }
+
+  Future<void> crearServicio(String nombre) async {
+  isLoading = true;
+  notifyListeners();
+
+  final servicio = TipoServicio(
+    idTipoServicio: null,
+    nombre: nombre,
+  );
+
+  await _repository.insertarServicio(servicio);
+  await cargarServicios();
+
+  isLoading = false;
+  notifyListeners();
+}
+
 }

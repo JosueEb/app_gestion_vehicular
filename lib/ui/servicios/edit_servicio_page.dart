@@ -6,6 +6,7 @@ import '../../models/movimiento_detalle.dart';
 import '../../models/tipo_servicio.dart';
 import '../../viewmodels/servicio_viewmodel.dart';
 import '../../viewmodels/servicio_movimiento_viewmodel.dart';
+import 'add_tipo_servicio_page.dart';
 
 class EditServicioPage extends StatefulWidget {
   final int idMovimiento;
@@ -100,7 +101,13 @@ class _EditServicioPageState extends State<EditServicioPage> {
     );
     if (picked != null) {
       setState(() {
-        _fecha = DateTime(picked.year, picked.month, picked.day, _hora.hour, _hora.minute);
+        _fecha = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          _hora.hour,
+          _hora.minute,
+        );
       });
     }
   }
@@ -119,7 +126,13 @@ class _EditServicioPageState extends State<EditServicioPage> {
     if (picked != null) {
       setState(() {
         _hora = picked;
-        _fecha = DateTime(_fecha.year, _fecha.month, _fecha.day, picked.hour, picked.minute);
+        _fecha = DateTime(
+          _fecha.year,
+          _fecha.month,
+          _fecha.day,
+          picked.hour,
+          picked.minute,
+        );
       });
     }
   }
@@ -149,18 +162,21 @@ class _EditServicioPageState extends State<EditServicioPage> {
 
   void _abrirSelectorServicios() async {
     final servicioVM = context.read<ServicioViewModel>();
-    final List<MovimientoDetalle>? seleccion = await Navigator.push<List<MovimientoDetalle>>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SeleccionarServiciosPage(
-          servicios: servicioVM.servicios,
-          actuales: _detalles,
-        ),
-      ),
-    );
+    final List<MovimientoDetalle>? seleccion =
+        await Navigator.push<List<MovimientoDetalle>>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SeleccionarServiciosPage(
+              servicios: servicioVM.servicios,
+              actuales: _detalles,
+            ),
+          ),
+        );
     if (seleccion != null) {
       setState(() {
-        _detalles..clear()..addAll(seleccion);
+        _detalles
+          ..clear()
+          ..addAll(seleccion);
       });
     }
   }
@@ -184,7 +200,10 @@ class _EditServicioPageState extends State<EditServicioPage> {
         appBar: AppBar(
           backgroundColor: servicioHeader,
           elevation: 0,
-          title: const Text('Editar Servicio', style: TextStyle(color: Colors.white)),
+          title: const Text(
+            'Editar Servicio',
+            style: TextStyle(color: Colors.white),
+          ),
           iconTheme: const IconThemeData(color: Colors.white),
           actions: [
             IconButton(
@@ -203,9 +222,17 @@ class _EditServicioPageState extends State<EditServicioPage> {
                   children: [
                     const Icon(Icons.calendar_today_outlined, color: grayIcons),
                     const SizedBox(width: 16),
-                    Expanded(child: _picker('Fecha', '${_fecha.day}/${_fecha.month}/${_fecha.year}', _pickFecha)),
+                    Expanded(
+                      child: _picker(
+                        'Fecha',
+                        '${_fecha.day}/${_fecha.month}/${_fecha.year}',
+                        _pickFecha,
+                      ),
+                    ),
                     const SizedBox(width: 12),
-                    Expanded(child: _picker('Hora', _hora.format(context), _pickHora)),
+                    Expanded(
+                      child: _picker('Hora', _hora.format(context), _pickHora),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -216,7 +243,9 @@ class _EditServicioPageState extends State<EditServicioPage> {
                     icon: Icon(Icons.shutter_speed_outlined, color: grayIcons),
                     labelText: 'Odómetro',
                     labelStyle: TextStyle(color: Colors.grey),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: servicioHeader)),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: servicioHeader),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -233,18 +262,33 @@ class _EditServicioPageState extends State<EditServicioPage> {
                             alignment: Alignment.centerLeft,
                             child: TextButton.icon(
                               onPressed: _abrirSelectorServicios,
-                              icon: const Icon(Icons.add, color: servicioHeader),
-                              label: const Text('Tipo de servicio', style: TextStyle(color: servicioHeader, fontSize: 16)),
+                              icon: const Icon(
+                                Icons.add,
+                                color: servicioHeader,
+                              ),
+                              label: const Text(
+                                'Tipo de servicio',
+                                style: TextStyle(
+                                  color: servicioHeader,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                           ),
                           const Divider(),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Costo total', style: TextStyle(fontSize: 16)),
+                              const Text(
+                                'Costo total',
+                                style: TextStyle(fontSize: 16),
+                              ),
                               Text(
                                 'MXN ${_total.toStringAsFixed(2)}',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -260,7 +304,9 @@ class _EditServicioPageState extends State<EditServicioPage> {
                     icon: Icon(Icons.notes, color: grayIcons),
                     labelText: 'Observaciones',
                     labelStyle: TextStyle(color: Colors.grey),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: servicioHeader)),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: servicioHeader),
+                    ),
                   ),
                   maxLines: 3,
                 ),
@@ -278,10 +324,18 @@ class _EditServicioPageState extends State<EditServicioPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: Text(d.descripcion ?? '', style: const TextStyle(fontSize: 16))),
+          Expanded(
+            child: Text(
+              d.descripcion ?? '',
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
           Row(
             children: [
-              Text('MXN ${d.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16)),
+              Text(
+                'MXN ${d.subtotal.toStringAsFixed(2)}',
+                style: const TextStyle(fontSize: 16),
+              ),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => setState(() => _detalles.remove(d)),
@@ -301,7 +355,9 @@ class _EditServicioPageState extends State<EditServicioPage> {
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(color: Colors.grey),
-          focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: servicioHeader)),
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: servicioHeader),
+          ),
         ),
         child: Text(value, style: const TextStyle(fontSize: 16)),
       ),
@@ -316,10 +372,15 @@ class SeleccionarServiciosPage extends StatefulWidget {
   final List<TipoServicio> servicios;
   final List<MovimientoDetalle> actuales;
 
-  const SeleccionarServiciosPage({super.key, required this.servicios, required this.actuales});
+  const SeleccionarServiciosPage({
+    super.key,
+    required this.servicios,
+    required this.actuales,
+  });
 
   @override
-  State<SeleccionarServiciosPage> createState() => _SeleccionarServiciosPageState();
+  State<SeleccionarServiciosPage> createState() =>
+      _SeleccionarServiciosPageState();
 }
 
 class _SeleccionarServiciosPageState extends State<SeleccionarServiciosPage> {
@@ -329,7 +390,9 @@ class _SeleccionarServiciosPageState extends State<SeleccionarServiciosPage> {
   void initState() {
     super.initState();
     _items = widget.servicios.map((s) {
-      final previo = widget.actuales.where((a) => a.idReferencia == s.idTipoServicio);
+      final previo = widget.actuales.where(
+        (a) => a.idReferencia == s.idTipoServicio,
+      );
       return _ServicioSeleccionable(
         servicio: s,
         seleccionado: previo.isNotEmpty,
@@ -343,7 +406,10 @@ class _SeleccionarServiciosPageState extends State<SeleccionarServiciosPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF009688),
-        title: const Text('Tipos de servicios', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Tipos de servicios',
+          style: TextStyle(color: Colors.white),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
@@ -365,6 +431,13 @@ class _SeleccionarServiciosPageState extends State<SeleccionarServiciosPage> {
           ),
         ],
       ),
+
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF009688), // mismo color del header
+        child: const Icon(Icons.add),
+        onPressed: () => _abrirAltaServicio(context),
+      ),
+
       body: ListView.builder(
         itemCount: _items.length,
         itemBuilder: (_, i) {
@@ -375,11 +448,16 @@ class _SeleccionarServiciosPageState extends State<SeleccionarServiciosPage> {
                 title: Text(item.servicio.nombre),
                 value: item.seleccionado,
                 activeColor: const Color(0xFF009688),
-                onChanged: (v) => setState(() => item.seleccionado = v ?? false),
+                onChanged: (v) =>
+                    setState(() => item.seleccionado = v ?? false),
               ),
               if (item.seleccionado)
                 Padding(
-                  padding: const EdgeInsets.only(left: 72, right: 16, bottom: 12),
+                  padding: const EdgeInsets.only(
+                    left: 72,
+                    right: 16,
+                    bottom: 12,
+                  ),
                   child: TextField(
                     controller: item.precioCtrl,
                     keyboardType: TextInputType.number,
@@ -398,6 +476,36 @@ class _SeleccionarServiciosPageState extends State<SeleccionarServiciosPage> {
       ),
     );
   }
+
+  void _abrirAltaServicio(BuildContext context) async {
+    final creado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddTipoServicioPage()),
+    );
+
+    if (creado == true) {
+      await context.read<ServicioViewModel>().cargarServicios();
+
+      // Reconstruir lista
+      setState(() {
+        final serviciosActuales = context.read<ServicioViewModel>().servicios;
+
+        _items = serviciosActuales.map((s) {
+          final previo = _items.where(
+            (i) => i.servicio.idTipoServicio == s.idTipoServicio,
+          );
+
+          if (previo.isNotEmpty) {
+            // 🔒 Mantener selección y precio existente
+            return previo.first;
+          }
+
+          // 🆕 Servicio nuevo
+          return _ServicioSeleccionable(servicio: s);
+        }).toList();
+      });
+    }
+  }
 }
 
 class _ServicioSeleccionable {
@@ -405,6 +513,11 @@ class _ServicioSeleccionable {
   bool seleccionado;
   final TextEditingController precioCtrl;
 
-  _ServicioSeleccionable({required this.servicio, this.seleccionado = false, double? precioInicial})
-      : precioCtrl = TextEditingController(text: precioInicial?.toString() ?? '');
+  _ServicioSeleccionable({
+    required this.servicio,
+    this.seleccionado = false,
+    double? precioInicial,
+  }) : precioCtrl = TextEditingController(
+         text: precioInicial?.toString() ?? '',
+       );
 }
