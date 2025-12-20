@@ -1,13 +1,18 @@
+import 'package:app_gestion_vehicular/ui/servicios/detalle_servicio_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../models/historico_item_ui.dart';
 import '../../../viewmodels/historico_viewmodel.dart'; // Asegúrate de importar tu VM
-import '../../../viewmodels/recarga_viewmodel.dart' show RecargaViewModel;
+import '../../../viewmodels/recarga_viewmodel.dart';
+import '../../../viewmodels/gasto_movimiento_viewmodel.dart';
+import '../../../viewmodels/servicio_movimiento_viewmodel.dart';
 import 'package:intl/intl.dart';
+import '../../gastos/edit_gasto_page.dart';
 import '../../gastos/gasto_detalle_page.dart';
 import '../../recargas/recarga_detalle_page.dart';
 import '../../recargas/recarga_form_page.dart';
 import '../../../viewmodels/vehiculo_viewmodel.dart';
+import '../../servicios/edit_servicio_page.dart';
 
 class TimelineItem extends StatelessWidget {
   final MovimientoHistorico movimiento;
@@ -119,15 +124,15 @@ class TimelineItem extends StatelessWidget {
                                     color: Colors.black87,
                                   ),
                                 ),
-                                if (movimiento.tipo.toLowerCase() ==
-                                    'combustible')
-                                  const Text(
-                                    "Gasolinera",
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
+                                // if (movimiento.tipo.toLowerCase() ==
+                                //     'combustible')
+                                //   const Text(
+                                //     "Gasolinera",
+                                //     style: TextStyle(
+                                //       color: Colors.grey,
+                                //       fontSize: 12,
+                                //     ),
+                                //   ),
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
@@ -227,28 +232,16 @@ class TimelineItem extends StatelessWidget {
 
                                       IconButton(
                                         onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => RecargaFormPage(
-                                                idMovimiento:
-                                                    movimiento.idMovimiento,
-                                              ),
-                                            ),
-                                          );
+                                          _editarMovimiento(context, movimiento);
                                         },
                                         icon: const Icon(Icons.edit_outlined),
                                       ),
                                       IconButton(
                                         onPressed: () async {
                                           final confirm =
-                                              await _confirmarEliminar(context);
+                                              await _confirmarEliminar(context, movimiento.tipo);
                                           if (confirm) {
-                                            await context
-                                                .read<RecargaViewModel>()
-                                                .eliminarRecarga(
-                                                  movimiento.idMovimiento,
-                                                );
+                                            await _manejarEliminacion(context, movimiento);
                                           }
                                         },
                                         icon: const Icon(Icons.delete_outline),
@@ -319,30 +312,6 @@ class TimelineItem extends StatelessWidget {
         return Colors.blueGrey;
     }
   }
-
-  Future<bool> _confirmarEliminar(BuildContext context) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Eliminar recarga'),
-            content: const Text(
-              'Esta acción no se puede deshacer. ¿Deseas continuar?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Eliminar'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
-
   void _verDetalleMovimiento(
     BuildContext context,
     MovimientoHistorico movimiento,
@@ -359,13 +328,21 @@ class TimelineItem extends StatelessWidget {
         break;
 
       case 'servicio':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                ServicioDetallePage(idMovimiento: movimiento.idMovimiento),
+          ),
+        );
+        break;
+
       case 'gasto':
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => GastoDetallePage(
-              idMovimiento: movimiento.idMovimiento,
-            ),
+            builder: (_) =>
+                GastoDetallePage(idMovimiento: movimiento.idMovimiento),
           ),
         );
         break;
@@ -375,5 +352,100 @@ class TimelineItem extends StatelessWidget {
           const SnackBar(content: Text('Tipo de movimiento no soportado')),
         );
     }
+  }
+
+  void _editarMovimiento(BuildContext context, MovimientoHistorico movimiento) {
+    switch (movimiento.tipo) {
+      case 'combustible':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                RecargaFormPage(idMovimiento: movimiento.idMovimiento),
+          ),
+        );
+        break;
+
+      case 'servicio':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                EditServicioPage(idMovimiento: movimiento.idMovimiento),
+          ),
+        );
+        break;
+
+      case 'gasto':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                EditGastoPage(idMovimiento: movimiento.idMovimiento),
+          ),
+        );
+        break;
+
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tipo de movimiento no soportado')),
+        );
+    }
+  }
+
+  Future<bool> _confirmarEliminar(BuildContext context, String tipo) async {
+  return await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text('Eliminar $tipo'),
+      content: Text('¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('CANCELAR'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: TextButton.styleFrom(foregroundColor: Colors.red),
+          child: const Text('ELIMINAR'),
+        ),
+      ],
+    ),
+  ) ?? false;
+}
+
+  Future<void> _manejarEliminacion(BuildContext context, MovimientoHistorico movimiento) async {
+  final confirm = await _confirmarEliminar(context, movimiento.tipo);
+  if (!confirm) return;
+
+  try {
+    switch (movimiento.tipo.toLowerCase()) {
+      case 'combustible':
+        await context.read<RecargaViewModel>().eliminarRecarga(movimiento.idMovimiento);
+        break;
+      case 'servicio':
+        await context.read<ServicioMovimientoViewModel>().eliminarServicio(movimiento.idMovimiento);
+        break;
+      case 'gasto':
+        await context.read<GastoMovimientoViewmodel>().eliminarGasto(movimiento.idMovimiento);
+        break;
+      default:
+        throw 'Tipo no soportado para eliminar';
+    }
+
+    // Opcional: Refrescar la lista del histórico después de eliminar
+    if (context.mounted) {
+      context.read<HistoricoViewModel>().cargarHistorico(movimiento.idMovimiento); 
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${movimiento.tipo} eliminado correctamente')),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al eliminar: $e')),
+      );
+    }
+  }
   }
 }
