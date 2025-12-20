@@ -6,4 +6,15 @@ abstract class GastoMovimientoRepository {
     required Movimiento movimiento,
     required List<MovimientoDetalle> detalles,
   });
+  Future<Movimiento> obtenerMovimientoPorId(int idMovimiento);
+  Future<List<MovimientoDetalle>> obtenerDetallesPorMovimiento(
+    int idMovimiento,
+  );
+
+  Future<void> actualizarGasto({
+    required Movimiento movimiento,
+    required List<MovimientoDetalle> detalles,
+  });
+
+  Future<void> eliminarGasto(int idMovimiento);
 }

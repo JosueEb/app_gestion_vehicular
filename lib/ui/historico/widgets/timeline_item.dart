@@ -4,6 +4,7 @@ import '../../../models/historico_item_ui.dart';
 import '../../../viewmodels/historico_viewmodel.dart'; // Asegúrate de importar tu VM
 import '../../../viewmodels/recarga_viewmodel.dart' show RecargaViewModel;
 import 'package:intl/intl.dart';
+import '../../gastos/gasto_detalle_page.dart';
 import '../../recargas/recarga_detalle_page.dart';
 import '../../recargas/recarga_form_page.dart';
 import '../../../viewmodels/vehiculo_viewmodel.dart';
@@ -213,22 +214,17 @@ class TimelineItem extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
                                       IconButton(
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  RecargaDetallePage(
-                                                    idMovimiento:
-                                                        movimiento.idMovimiento,
-                                                  ),
-                                            ),
-                                          );
-                                        },
                                         icon: const Icon(
                                           Icons.visibility_outlined,
                                         ),
+                                        onPressed: () {
+                                          _verDetalleMovimiento(
+                                            context,
+                                            movimiento,
+                                          );
+                                        },
                                       ),
+
                                       IconButton(
                                         onPressed: () {
                                           Navigator.push(
@@ -345,5 +341,39 @@ class TimelineItem extends StatelessWidget {
           ),
         ) ??
         false;
+  }
+
+  void _verDetalleMovimiento(
+    BuildContext context,
+    MovimientoHistorico movimiento,
+  ) {
+    switch (movimiento.tipo) {
+      case 'combustible':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                RecargaDetallePage(idMovimiento: movimiento.idMovimiento),
+          ),
+        );
+        break;
+
+      case 'servicio':
+      case 'gasto':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => GastoDetallePage(
+              idMovimiento: movimiento.idMovimiento,
+            ),
+          ),
+        );
+        break;
+
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tipo de movimiento no soportado')),
+        );
+    }
   }
 }
