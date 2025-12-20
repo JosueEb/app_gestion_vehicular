@@ -1,3 +1,4 @@
+import 'package:app_gestion_vehicular/ui/gastos/add_gasto_page.dart';
 import 'package:flutter/material.dart';
 
 import '/ui/servicios/add_servicio_page.dart';
@@ -68,7 +69,10 @@ class _HomePageState extends State<HomePage> {
                 label: 'Gasto',
                 onTap: () {
                   Navigator.pop(context);
-                  // // TODO: navegar a agregar gasto
+                  Navigator.push(
+                      context,
+                  MaterialPageRoute(builder: (_) => const AddGastoPage())
+                  );
                 },
               ),
               _AddItem(

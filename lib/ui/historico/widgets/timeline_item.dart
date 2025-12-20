@@ -311,9 +311,9 @@ class TimelineItem extends StatelessWidget {
         return Colors.orange;
       case 'servicio':
         return const Color(0xFF795548);
-      case 'ruta':
-        return const Color(0xFFE57373);
       case 'gasto':
+        return const Color(0xFFFF5722);
+      case 'ruta':
         return const Color(0xFF607D8B);
       case 'ingreso':
         return Colors.lightGreen;

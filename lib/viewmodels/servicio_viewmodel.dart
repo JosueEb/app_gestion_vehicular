@@ -28,4 +28,13 @@ class ServicioViewModel extends ChangeNotifier {
     servicioSeleccionado = servicio;
     notifyListeners();
   }
+
+  void insertarServicio(TipoServicio servicio) async {
+    isLoading = true;
+    notifyListeners();
+    await _repository.insertarServicio(servicio);
+    await cargarServicios();
+    isLoading = false;
+    notifyListeners();
+  }
 }

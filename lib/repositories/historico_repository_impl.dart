@@ -20,11 +20,7 @@ class HistoricoRepositoryImpl implements HistoricoRepository {
             m.tipo_movimiento,
             m.fecha,
             m.odometro,
-            -- CORRECCIÓN: Sintaxis CASE WHEN y Subconsulta para sumar
-            CASE
-                WHEN m.tipo_movimiento = 'servicio' THEN (SELECT SUM(subtotal) FROM movimiento_detalle WHERE id_movimiento = m.id_movimiento)
-                ELSE m.total
-            END as total,
+            m.total,
             md.id_detalle,
             md.tipo_detalle,
             md.id_referencia,

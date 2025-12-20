@@ -8,6 +8,8 @@ import 'viewmodels/combustible_viewmodel.dart';
 import 'viewmodels/servicio_viewmodel.dart';
 import 'viewmodels/servicio_movimiento_viewmodel.dart';
 import 'viewmodels/historico_viewmodel.dart';
+import 'viewmodels/gasto_viewmodel.dart';
+import 'viewmodels/gasto_movimiento_viewmodel.dart';
 
 import 'ui/app_start_page.dart';
 
@@ -22,6 +24,8 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ServicioViewModel()),
         ChangeNotifierProvider(create: (_) => ServicioMovimientoViewModel()),
         ChangeNotifierProvider(create: (_) => HistoricoViewModel()),
+        ChangeNotifierProvider(create: (_) => GastoViewModel()),
+        ChangeNotifierProvider(create: (_) => GastoMovimientoViewmodel()),
         /// Vehículo activo
         ChangeNotifierProvider(
           create: (_) {

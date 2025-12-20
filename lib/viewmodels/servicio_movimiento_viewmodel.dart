@@ -65,13 +65,15 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
       throw Exception('No hay vehículo activo');
     }
 
+    final calculoTotal = detalles.fold<double>(0, (sum, d) => sum + d.subtotal);
+
     final movimiento = Movimiento(
       idVehiculo: idVehiculo,
       idUsuario: 1,
       tipoMovimiento: 'servicio',
       fecha: fecha,
       odometro: odometro,
-      total: total,
+      total: calculoTotal,
       observaciones: observaciones,
     );
 
