@@ -95,7 +95,7 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
   List<MovimientoDetalle> get detallesMovimiento =>
       List.unmodifiable(_detallesMovimiento);
 
-  Future<void> cargarGastoPorId(int idMovimiento) async {
+  Future<void> cargarServicioPorId(int idMovimiento) async {
     isLoading = true;
     notifyListeners();
 
@@ -175,7 +175,7 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
             idMovimiento, // Pasamos el ID para que el repo sepa qué editar
         idVehiculo: idVehiculo,
         idUsuario: 1,
-        tipoMovimiento: 'gasto',
+        tipoMovimiento: 'servicio',
         fecha: fecha,
         odometro: odometro,
         total: calculoTotal,
@@ -213,7 +213,7 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
       // Opcional: Aquí podrías llamar a un método para refrescar
       // la lista del historial si fuera necesario.
     } catch (e) {
-      debugPrint("Error al eliminar el gasto: $e");
+      debugPrint("Error al eliminar el servicio: $e");
       rethrow; // Re-lanzamos el error para que la UI pueda mostrar un SnackBar si lo deseas
     } finally {
       isLoading = false;

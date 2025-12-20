@@ -27,9 +27,19 @@ class HistoricoRepositoryImpl implements HistoricoRepository {
             md.descripcion,
             md.cantidad,
             md.precio_unitario,
-            md.subtotal
+            md.subtotal,
+            md.tanque_lleno,
+            ( SELECT m2.odometro
+              FROM movimientos m2
+              WHERE m2.id_vehiculo = m.id_vehiculo
+                AND m2.tipo_movimiento = 'combustible'
+                AND m2.fecha > m.fecha
+              ORDER BY m2.fecha ASC
+              LIMIT 1
+            ) AS odometro_siguiente
         FROM movimientos m
-        LEFT JOIN movimiento_detalle md ON md.id_movimiento = m.id_movimiento
+        LEFT JOIN movimiento_detalle md 
+          ON md.id_movimiento = m.id_movimiento
         WHERE m.id_vehiculo = ?
         ORDER BY m.fecha DESC;
     ''', [vehiculoId]);

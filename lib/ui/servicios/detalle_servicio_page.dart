@@ -18,7 +18,7 @@ class _ServicioDetallePageState extends State<ServicioDetallePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ServicioMovimientoViewModel>().cargarGastoPorId(
+      context.read<ServicioMovimientoViewModel>().cargarServicioPorId(
         widget.idMovimiento,
       );
     });

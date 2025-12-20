@@ -232,16 +232,25 @@ class TimelineItem extends StatelessWidget {
 
                                       IconButton(
                                         onPressed: () {
-                                          _editarMovimiento(context, movimiento);
+                                          _editarMovimiento(
+                                            context,
+                                            movimiento,
+                                          );
                                         },
                                         icon: const Icon(Icons.edit_outlined),
                                       ),
                                       IconButton(
                                         onPressed: () async {
                                           final confirm =
-                                              await _confirmarEliminar(context, movimiento.tipo);
+                                              await _confirmarEliminar(
+                                                context,
+                                                movimiento.tipo,
+                                              );
                                           if (confirm) {
-                                            await _manejarEliminacion(context, movimiento);
+                                            await _manejarEliminacion(
+                                              context,
+                                              movimiento,
+                                            );
                                           }
                                         },
                                         icon: const Icon(Icons.delete_outline),
@@ -312,6 +321,7 @@ class TimelineItem extends StatelessWidget {
         return Colors.blueGrey;
     }
   }
+
   void _verDetalleMovimiento(
     BuildContext context,
     MovimientoHistorico movimiento,
@@ -394,58 +404,68 @@ class TimelineItem extends StatelessWidget {
   }
 
   Future<bool> _confirmarEliminar(BuildContext context, String tipo) async {
-  return await showDialog<bool>(
-    context: context,
-    builder: (_) => AlertDialog(
-      title: Text('Eliminar $tipo'),
-      content: Text('¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('CANCELAR'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: TextButton.styleFrom(foregroundColor: Colors.red),
-          child: const Text('ELIMINAR'),
-        ),
-      ],
-    ),
-  ) ?? false;
-}
+    return await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text('Eliminar $tipo'),
+            content: Text(
+              '¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('CANCELAR'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('ELIMINAR'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
 
-  Future<void> _manejarEliminacion(BuildContext context, MovimientoHistorico movimiento) async {
-  final confirm = await _confirmarEliminar(context, movimiento.tipo);
-  if (!confirm) return;
+  Future<void> _manejarEliminacion(
+    BuildContext context,
+    MovimientoHistorico movimiento,
+  ) async {
+    final confirm = await _confirmarEliminar(context, movimiento.tipo);
+    if (!confirm) return;
 
-  try {
-    switch (movimiento.tipo.toLowerCase()) {
-      case 'combustible':
-        await context.read<RecargaViewModel>().eliminarRecarga(movimiento.idMovimiento);
-        break;
-      case 'servicio':
-        await context.read<ServicioMovimientoViewModel>().eliminarServicio(movimiento.idMovimiento);
-        break;
-      case 'gasto':
-        await context.read<GastoMovimientoViewmodel>().eliminarGasto(movimiento.idMovimiento);
-        break;
-      default:
-        throw 'Tipo no soportado para eliminar';
-    }
+    try {
+      switch (movimiento.tipo.toLowerCase()) {
+        case 'combustible':
+          await context.read<RecargaViewModel>().eliminarRecarga(
+            movimiento.idMovimiento,
+          );
+          break;
+        case 'servicio':
+          await context.read<ServicioMovimientoViewModel>().eliminarServicio(
+            movimiento.idMovimiento,
+          );
+          break;
+        case 'gasto':
+          await context.read<GastoMovimientoViewmodel>().eliminarGasto(
+            movimiento.idMovimiento,
+          );
+          break;
+        default:
+          throw 'Tipo no soportado para eliminar';
+      }
 
-    // Opcional: Refrescar la lista del histórico después de eliminar
-    if (context.mounted) {
-      context.read<HistoricoViewModel>().cargarHistorico(movimiento.idMovimiento); 
+      // Opcional: Refrescar la lista del histórico después de eliminar
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${movimiento.tipo} eliminado correctamente')),
       );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al eliminar: $e')));
+      }
     }
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al eliminar: $e')),
-      );
-    }
-  }
   }
 }

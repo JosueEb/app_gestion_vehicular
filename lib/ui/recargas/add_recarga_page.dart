@@ -164,6 +164,7 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
       idCombustible: combustible.idCombustible!,
       observaciones: _obsCtrl.text,
       tanqueLleno: _tanqueLleno,
+      descripcion: combustibleVM.combustibleActivo!.nombre,
     );
 
     await vehiculoVM.cargarUltimoKilometraje();

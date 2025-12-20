@@ -51,22 +51,23 @@ class HistoricoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Función para calcular estadísticas de combustible
   Map<String, double>? obtenerEstadisticasCombustible(
     MovimientoHistorico actual,
-    int tamanioTanque, // 👈 NUEVO
+    int tamanioTanque,
   ) {
     if (actual.tipo.toLowerCase() != 'combustible') return null;
     if (tamanioTanque <= 0) return null;
 
-    // 1. Encontrar el índice del movimiento actual
+    // 1. Índice del movimiento actual
     final int index = _movimientos.indexOf(actual);
 
-    // 2. Buscar el registro de combustible ANTERIOR
-    MovimientoHistorico? anterior;
-    for (int i = index + 1; i < _movimientos.length; i++) {
+    if (index == -1) return null;
+
+    // 2. Buscar la recarga SIGUIENTE (cronológicamente)
+    MovimientoHistorico? siguiente;
+    for (int i = index - 1; i >= 0; i--) {
       if (_movimientos[i].tipo.toLowerCase() == 'combustible') {
-        anterior = _movimientos[i];
+        siguiente = _movimientos[i];
         break;
       }
     }
@@ -84,14 +85,14 @@ class HistoricoViewModel extends ChangeNotifier {
     double kmRecorridos = 0;
     double rendimiento = 0;
 
-    if (anterior != null && litrosCargados > 0) {
-      kmRecorridos = actual.odometro - anterior.odometro;
+    if (siguiente != null && litrosCargados > 0) {
+      kmRecorridos = siguiente.odometro - actual.odometro;
       if (kmRecorridos > 0) {
         rendimiento = kmRecorridos / litrosCargados;
       }
     }
 
-    // 5. Porcentaje del tanque (DESPUÉS de la recarga)
+    // 5. Porcentaje del tanque (después de la recarga)
     double porcentajeTanque;
     if (tanqueLleno) {
       porcentajeTanque = 100;
@@ -111,32 +112,31 @@ class HistoricoViewModel extends ChangeNotifier {
 
   Map<String, double>? obtenerEstadisticasDesdeMap(
     Map<String, dynamic> r,
-    int tamanioTanque, // 👈 NUEVO
+    int tamanioTanque,
   ) {
-    final odometro = (r['odometro'] as num?)?.toDouble();
+    final odometroActual = (r['odometro'] as num?)?.toDouble();
+    final odometroSiguiente = (r['odometro_siguiente'] as num?)?.toDouble();
+
     final litros = (r['cantidad'] as num?)?.toDouble();
     final total = (r['total'] as num?)?.toDouble();
     final tanqueLleno = (r['tanque_lleno'] ?? 0) == 1;
 
-    if (odometro == null || litros == null || total == null) return null;
+    if (odometroActual == null || litros == null || total == null) return null;
     if (litros <= 0 || tamanioTanque <= 0) return null;
-
-    final odometroAnterior = (r['odometro_anterior'] as num?)?.toDouble();
 
     double kmRecorridos = 0;
     double rendimiento = 0;
     double costoPorKm = 0;
 
-    if (odometroAnterior != null && odometroAnterior > 0) {
-      kmRecorridos = odometro - odometroAnterior;
+    // 🔥 USAR RECARGA SIGUIENTE
+    if (odometroSiguiente != null && odometroSiguiente > odometroActual) {
+      kmRecorridos = odometroSiguiente - odometroActual;
 
-      if (kmRecorridos > 0) {
-        rendimiento = kmRecorridos / litros;
-        costoPorKm = total / kmRecorridos;
-      }
+      rendimiento = kmRecorridos / litros;
+      costoPorKm = total / kmRecorridos;
     }
 
-    // 🔥 Porcentaje del tanque después de la recarga
+    // 🔥 Porcentaje del tanque
     double porcentajeTanque;
     if (tanqueLleno) {
       porcentajeTanque = 100;

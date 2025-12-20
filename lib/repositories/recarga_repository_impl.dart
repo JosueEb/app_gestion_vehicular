@@ -103,7 +103,15 @@ class RecargaRepositoryImpl implements RecargaRepository {
               AND m2.fecha < m.fecha
             ORDER BY m2.fecha DESC
             LIMIT 1
-          ) AS odometro_anterior
+          ) AS odometro_anterior,
+          ( SELECT m2.odometro
+              FROM movimientos m2
+              WHERE m2.id_vehiculo = m.id_vehiculo
+                AND m2.tipo_movimiento = 'combustible'
+                AND m2.fecha > m.fecha
+              ORDER BY m2.fecha ASC
+              LIMIT 1
+            ) AS odometro_siguiente
         FROM movimientos m
         INNER JOIN movimiento_detalle md 
           ON m.id_movimiento = md.id_movimiento
