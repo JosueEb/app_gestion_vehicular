@@ -17,4 +17,9 @@ abstract class RecargaRepository {
   Future<void> eliminarRecarga(int idMovimiento);
 
   Future<Map<String, dynamic>?> obtenerRecargaPorId(int idMovimiento);
+
+  Future<Map<String, double?>> obtenerRangoOdometroPorFecha({
+    required int vehiculoId,
+    required DateTime fecha,
+  });
 }

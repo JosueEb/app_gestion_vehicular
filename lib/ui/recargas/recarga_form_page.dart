@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../viewmodels/recarga_viewmodel.dart';
-// import '../../viewmodels/vehiculo_viewmodel.dart';
 import '../../models/combustible.dart';
 
 class RecargaFormPage extends StatefulWidget {
@@ -63,48 +62,42 @@ class _RecargaFormPageState extends State<RecargaFormPage> {
 
   // ───────────────── CARGA INICIAL ─────────────────
 
-void _cargarDatosIniciales() {
-  if (_datosCargados) return;
+  void _cargarDatosIniciales() {
+    if (_datosCargados) return;
 
-  final recargaVM = context.read<RecargaViewModel>();
-  final combustibleVM = context.read<CombustibleViewModel>();
-  final recarga = recargaVM.recargaSeleccionada;
+    final recargaVM = context.read<RecargaViewModel>();
+    final combustibleVM = context.read<CombustibleViewModel>();
+    final recarga = recargaVM.recargaSeleccionada;
 
-  // Si aún no hay datos, no marcamos como cargado
-  if (recarga == null || combustibleVM.combustibles.isEmpty) return;
+    if (recarga == null || combustibleVM.combustibles.isEmpty) return;
 
-  _actualizando = true;
+    _actualizando = true;
 
-  // Llenado de controladores
-  _fecha = DateTime.parse(recarga['fecha']);
-  _hora = TimeOfDay.fromDateTime(_fecha);
-  _odometroCtrl.text = recarga['odometro'].toString();
-  _precioCtrl.text = recarga['precio_unitario'].toString();
-  _litrosCtrl.text = recarga['cantidad'].toString();
-  _totalCtrl.text = recarga['total'].toString();
-  _obsCtrl.text = recarga['observaciones'] ?? '';
-  _tanqueLleno = recarga['tanque_lleno'] == 1;
+    _fecha = DateTime.parse(recarga['fecha']);
+    _hora = TimeOfDay.fromDateTime(_fecha);
+    _odometroCtrl.text = recarga['odometro'].toString();
+    _precioCtrl.text = recarga['precio_unitario'].toString();
+    _litrosCtrl.text = recarga['cantidad'].toString();
+    _totalCtrl.text = recarga['total'].toString();
+    _obsCtrl.text = recarga['observaciones'] ?? '';
+    _tanqueLleno = recarga['tanque_lleno'] == 1;
 
-  // SELECCIÓN DEL COMBUSTIBLE: 
-  // Buscamos el objeto dentro de la lista oficial del VM para que coincida la referencia
-  final idCombustible = recarga['id_combustible'];
-  try {
-    final combustibleMatch = combustibleVM.combustibles.firstWhere(
-      (c) => c.idCombustible == idCombustible
-    );
-    // IMPORTANTE: Notifica al VM para que el 'combustibleActivo' cambie
-    combustibleVM.seleccionarCombustible(combustibleMatch);
-  } catch (e) {
-    // ignore: avoid_print
-    print("No se encontró el combustible con ID: $idCombustible");
+    final idCombustible = recarga['id_combustible'];
+    try {
+      final combustibleMatch = combustibleVM.combustibles.firstWhere(
+        (c) => c.idCombustible == idCombustible,
+      );
+      combustibleVM.seleccionarCombustible(combustibleMatch);
+    } catch (_) {}
+
+    _datosCargados = true;
+    _actualizando = false;
+
+    // 🔥 calcular rango inicial
+    recargaVM.calcularRangoOdometroSoloFecha(_fecha);
+
+    if (mounted) setState(() {});
   }
-
-  _actualizando = false;
-  _datosCargados = true;
-
-  // Forzamos el redibujo para que el Dropdown vea el 'combustibleActivo'
-  if (mounted) setState(() {});
-}
 
   // ───────────────── LISTENERS ─────────────────
 
@@ -168,6 +161,11 @@ void _cargarDatosIniciales() {
           _hora.minute,
         );
       });
+
+      // 🔥 recalcular rango
+      await context
+          .read<RecargaViewModel>()
+          .calcularRangoOdometroSoloFecha(_fecha);
     }
   }
 
@@ -202,7 +200,7 @@ void _cargarDatosIniciales() {
 
     await recargaVM.actualizarRecarga(
       idMovimiento: widget.idMovimiento,
-      vehiculoId: recarga['id_vehiculo'], // ✅ AQUÍ
+      vehiculoId: recarga['id_vehiculo'],
       fecha: _fecha,
       litros: double.parse(_litrosCtrl.text),
       precioUnitario: double.parse(_precioCtrl.text),
@@ -222,6 +220,9 @@ void _cargarDatosIniciales() {
     final recargaVM = context.watch<RecargaViewModel>();
     final combustibleVM = context.watch<CombustibleViewModel>();
 
+    final minKm = recargaVM.odometroMinPermitido;
+    final maxKm = recargaVM.odometroMaxPermitido;
+
     if (recargaVM.isLoading && !_datosCargados) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -234,10 +235,7 @@ void _cargarDatosIniciales() {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.orange,
-          title: const Text(
-            'Editar recarga',
-            style: TextStyle(color: Colors.white),
-          ),
+          title: const Text('Editar recarga', style: TextStyle(color: Colors.white)),
           actions: [
             IconButton(
               icon: const Icon(Icons.check, color: Colors.white),
@@ -254,11 +252,7 @@ void _cargarDatosIniciales() {
               children: [
                 Row(
                   children: [
-                    const Icon(
-                      Icons.calendar_today_outlined,
-                      color: Colors.grey,
-                      size: 28,
-                    ),
+                    const Icon(Icons.calendar_today_outlined, color: Colors.grey, size: 28),
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildInlinePicker(
@@ -282,37 +276,33 @@ void _cargarDatosIniciales() {
                 TextFormField(
                   controller: _odometroCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    icon: Icon(
-                      Icons.shutter_speed_outlined,
-                      color: Colors.grey,
-                      size: 28,
-                    ),
+                  decoration: InputDecoration(
+                    icon: const Icon(Icons.shutter_speed_outlined, color: Colors.grey, size: 28),
                     labelText: 'Odómetro',
+                    helperText: _buildHelperKm(minKm, maxKm),
                   ),
+                  validator: (value) {
+                    final km = double.tryParse(value ?? '');
+                    if (km == null) return 'Ingrese un valor válido';
+                    if (minKm != null && km < minKm) return 'Debe ser ≥ $minKm km';
+                    if (maxKm != null && km > maxKm) return 'Debe ser ≤ $maxKm km';
+                    return null;
+                  },
                 ),
+
                 const SizedBox(height: 20),
 
                 DropdownButtonFormField<Combustible>(
                   value: combustibleVM.combustibleActivo,
                   decoration: const InputDecoration(
-                    icon: Icon(
-                      Icons.gas_meter_outlined,
-                      color: Colors.grey,
-                      size: 28,
-                    ),
+                    icon: Icon(Icons.gas_meter_outlined, color: Colors.grey, size: 28),
                     labelText: 'Combustible',
                   ),
                   items: combustibleVM.combustibles
-                      .map(
-                        (c) =>
-                            DropdownMenuItem(value: c, child: Text(c.nombre)),
-                      )
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c.nombre)))
                       .toList(),
                   onChanged: (c) {
-                    if (c != null) {
-                      combustibleVM.seleccionarCombustible(c);
-                    }
+                    if (c != null) combustibleVM.seleccionarCombustible(c);
                   },
                 ),
 
@@ -321,19 +311,13 @@ void _cargarDatosIniciales() {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.payments_outlined,
-                      color: Colors.grey,
-                      size: 28,
-                    ),
+                    const Icon(Icons.payments_outlined, color: Colors.grey, size: 28),
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextFormField(
                         controller: _precioCtrl,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Precio / L',
-                        ),
+                        decoration: const InputDecoration(labelText: 'Precio / L'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -341,9 +325,7 @@ void _cargarDatosIniciales() {
                       child: TextFormField(
                         controller: _totalCtrl,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Costo total',
-                        ),
+                        decoration: const InputDecoration(labelText: 'Costo total'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -361,17 +343,10 @@ void _cargarDatosIniciales() {
 
                 Row(
                   children: [
-                    const Icon(
-                      Icons.gas_meter_rounded,
-                      color: Colors.grey,
-                      size: 28,
-                    ),
+                    const Icon(Icons.gas_meter_rounded, color: Colors.grey, size: 28),
                     const SizedBox(width: 16),
                     const Expanded(
-                      child: Text(
-                        '¿Está llenando el tanque?',
-                        style: TextStyle(fontSize: 16),
-                      ),
+                      child: Text('¿Está llenando el tanque?', style: TextStyle(fontSize: 16)),
                     ),
                     Switch(
                       value: _tanqueLleno,
@@ -396,12 +371,26 @@ void _cargarDatosIniciales() {
     return InkWell(
       onTap: onTap,
       child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          contentPadding: const EdgeInsets.only(bottom: 8),
+        decoration: const InputDecoration(
+          contentPadding: EdgeInsets.only(bottom: 8),
         ),
-        child: Text(value, style: const TextStyle(fontSize: 16)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(color: Colors.grey)),
+            Text(value, style: const TextStyle(fontSize: 16)),
+          ],
+        ),
       ),
     );
+  }
+
+  String _buildHelperKm(double? min, double? max) {
+    if (min != null && max != null) {
+      return 'Permitido entre $min y $max km';
+    }
+    if (min != null) return 'Mínimo permitido: $min km';
+    if (max != null) return 'Máximo permitido: $max km';
+    return '';
   }
 }

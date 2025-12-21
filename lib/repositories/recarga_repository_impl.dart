@@ -122,4 +122,47 @@ class RecargaRepositoryImpl implements RecargaRepository {
 
     return result.isNotEmpty ? result.first : null;
   }
+
+  @override
+  Future<Map<String, double?>> obtenerRangoOdometroPorFecha({
+    required int vehiculoId,
+    required DateTime fecha,
+  }) async {
+    final db = await _dbHelper.database;
+
+    // 🔹 Último odómetro ANTES (o igual) a la fecha
+    final anterior = await db.rawQuery(
+      '''
+        SELECT odometro
+        FROM movimientos
+        WHERE id_vehiculo = ?
+          AND fecha < ?
+        ORDER BY fecha DESC
+        LIMIT 1
+    ''',
+      [vehiculoId, fecha.toIso8601String()],
+    );
+
+    // 🔹 Primer odómetro DESPUÉS de la fecha
+    final siguiente = await db.rawQuery(
+      '''
+        SELECT odometro
+        FROM movimientos
+        WHERE id_vehiculo = ?
+          AND fecha > ?
+        ORDER BY fecha ASC
+        LIMIT 1
+    ''',
+      [vehiculoId, fecha.toIso8601String()],
+    );
+
+    return {
+      'anterior': anterior.isNotEmpty
+          ? (anterior.first['odometro'] as num?)?.toDouble()
+          : null,
+      'siguiente': siguiente.isNotEmpty
+          ? (siguiente.first['odometro'] as num?)?.toDouble()
+          : null,
+    };
+  }
 }

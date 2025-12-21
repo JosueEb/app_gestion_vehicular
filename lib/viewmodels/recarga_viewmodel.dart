@@ -53,7 +53,7 @@ class RecargaViewModel extends ChangeNotifier {
     required int idCombustible,
     required String observaciones,
     required bool tanqueLleno,
-    required String descripcion
+    required String descripcion,
   }) async {
     isLoading = true;
     notifyListeners();
@@ -162,6 +162,41 @@ class RecargaViewModel extends ChangeNotifier {
   /// Limpia la selección después de guardar o cancelar
   void limpiarEdicion() {
     recargaSeleccionada = null;
+    notifyListeners();
+  }
+
+  double? odometroMinPermitido;
+  double? odometroMaxPermitido;
+
+  Future<void> calcularRangoOdometro({
+    required int vehiculoId,
+    required DateTime fecha,
+  }) async {
+    final rango = await _repository.obtenerRangoOdometroPorFecha(
+      vehiculoId: vehiculoId,
+      fecha: fecha,
+    );
+
+    odometroMinPermitido = rango['anterior'];
+    odometroMaxPermitido = rango['siguiente'];
+
+    notifyListeners();
+  }
+
+    Future<void> calcularRangoOdometroSoloFecha(DateTime fecha) async {
+    final recarga = recargaSeleccionada;
+    if (recarga == null) return;
+
+    final int vehiculoId = recarga['id_vehiculo'];
+
+    final rango = await _repository.obtenerRangoOdometroPorFecha(
+      vehiculoId: vehiculoId,
+      fecha: fecha,
+    );
+
+    odometroMinPermitido = rango['anterior'];
+    odometroMaxPermitido = rango['siguiente'];
+
     notifyListeners();
   }
 }

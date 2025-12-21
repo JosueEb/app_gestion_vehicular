@@ -44,6 +44,14 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
       context.read<VehiculoViewModel>().cargarUltimoKilometraje();
       context.read<CombustibleViewModel>().cargarCombustibles();
       context.read<CombustibleViewModel>().obtenerUltimoCostoLitro();
+
+      final vehiculo = context.read<VehiculoViewModel>().vehiculoActivo;
+      if (vehiculo != null) {
+        context.read<RecargaViewModel>().calcularRangoOdometro(
+          vehiculoId: vehiculo.idVehiculo!,
+          fecha: _fecha,
+        );
+      }
     });
   }
 
@@ -109,6 +117,7 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
     );
+
     if (picked != null) {
       setState(() {
         _fecha = DateTime(
@@ -119,14 +128,19 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
           _hora.minute,
         );
       });
+
+      final vehiculo = context.read<VehiculoViewModel>().vehiculoActivo;
+      if (vehiculo != null) {
+        context.read<RecargaViewModel>().calcularRangoOdometro(
+          vehiculoId: vehiculo.idVehiculo!,
+          fecha: _fecha,
+        );
+      }
     }
   }
 
   Future<void> _pickHora() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _hora,
-    );
+    final picked = await showTimePicker(context: context, initialTime: _hora);
     if (picked != null) {
       setState(() {
         _hora = picked;
@@ -182,6 +196,9 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
     final ultimoKm = vehiculoVM.ultimoKilometraje;
     final ultimoPrecio = combustibleVM.ultimoCostoLitro;
 
+    final minKm = recargaVM.odometroMinPermitido;
+    final maxKm = recargaVM.odometroMaxPermitido;
+
     if (!_precioInicialAsignado && ultimoPrecio != null) {
       _precioCtrl.text = ultimoPrecio.toStringAsFixed(2);
       _precioInicialAsignado = true;
@@ -218,7 +235,11 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
                 // FECHA Y HORA CON ÍCONO
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today_outlined, color: Colors.grey, size: 28),
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      color: Colors.grey,
+                      size: 28,
+                    ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildInlinePicker(
@@ -244,22 +265,52 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
                   controller: _odometroCtrl,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    icon: const Icon(Icons.shutter_speed_outlined, color: Colors.grey, size: 28),
+                    icon: const Icon(
+                      Icons.shutter_speed_outlined,
+                      color: Colors.grey,
+                      size: 28,
+                    ),
                     labelText: 'Odómetro',
-                    helperText: 'Último: ${ultimoKm ?? 0} km',
+                    helperText: _buildHelperKm(
+                      minKm,
+                      maxKm,
+                      ultimoKm?.toDouble(),
+                    ),
                   ),
+                  validator: (v) {
+                    final val = double.tryParse(v ?? '');
+                    if (val == null) return 'Valor inválido';
+
+                    if (minKm != null && val < minKm) {
+                      return 'Debe ser ≥ ${minKm.toInt()} km';
+                    }
+
+                    if (maxKm != null && val > maxKm) {
+                      return 'Debe ser ≤ ${maxKm.toInt()} km';
+                    }
+
+                    return null;
+                  },
                 ),
+
                 const SizedBox(height: 20),
 
                 // COMBUSTIBLE CON ÍCONO
                 DropdownButtonFormField<Combustible>(
                   value: combustibleVM.combustibleActivo,
                   decoration: const InputDecoration(
-                    icon: Icon(Icons.gas_meter_outlined, color: Colors.grey, size: 28),
+                    icon: Icon(
+                      Icons.gas_meter_outlined,
+                      color: Colors.grey,
+                      size: 28,
+                    ),
                     labelText: 'Combustible',
                   ),
                   items: combustibleVM.combustibles
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c.nombre)))
+                      .map(
+                        (c) =>
+                            DropdownMenuItem(value: c, child: Text(c.nombre)),
+                      )
                       .toList(),
                   onChanged: (c) {
                     if (c != null) {
@@ -275,13 +326,19 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.payments_outlined, color: Colors.grey, size: 28),
+                    const Icon(
+                      Icons.payments_outlined,
+                      color: Colors.grey,
+                      size: 28,
+                    ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextFormField(
                         controller: _precioCtrl,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Precio / L'),
+                        decoration: const InputDecoration(
+                          labelText: 'Precio / L',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -289,7 +346,9 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
                       child: TextFormField(
                         controller: _totalCtrl,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Costo total'),
+                        decoration: const InputDecoration(
+                          labelText: 'Costo total',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -307,10 +366,17 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
                 // TANQUE LLENO CON ÍCONO
                 Row(
                   children: [
-                    const Icon(Icons.gas_meter_rounded, color: Colors.grey, size: 28),
+                    const Icon(
+                      Icons.gas_meter_rounded,
+                      color: Colors.grey,
+                      size: 28,
+                    ),
                     const SizedBox(width: 16),
                     const Expanded(
-                      child: Text('¿Está llenando el tanque?', style: TextStyle(fontSize: 16)),
+                      child: Text(
+                        '¿Está llenando el tanque?',
+                        style: TextStyle(fontSize: 16),
+                      ),
                     ),
                     Switch(
                       value: _tanqueLleno,
@@ -342,5 +408,14 @@ class _AddRecargaPageState extends State<AddRecargaPage> {
         child: Text(value, style: const TextStyle(fontSize: 16)),
       ),
     );
+  }
+
+  String _buildHelperKm(double? min, double? max, double? ultimo) {
+    if (min != null && max != null) {
+      return 'Entre ${min.toInt()} y ${max.toInt()} km';
+    }
+    if (min != null) return 'Mínimo ${min.toInt()} km';
+    if (max != null) return 'Máximo ${max.toInt()} km';
+    return 'Último: ${ultimo ?? 0} km';
   }
 }
