@@ -17,4 +17,9 @@ abstract class ServicioMovimientoRepository {
   });
 
   Future<void> eliminarServicio(int idMovimiento);
+
+  Future<Map<String, double?>> obtenerRangoOdometroPorFecha({
+    required int vehiculoId,
+    required DateTime fecha,
+  });
 }

@@ -26,16 +26,31 @@ class _AddGastoPageState extends State<AddGastoPage> {
   final List<GastoDetalleForm> _detalles = [];
 
   // 🎨 COLORES SEGÚN IMÁGENES DE REFERENCIA
-  static const Color orangeHeader = Color(0xFFFF5722); // Naranja de AppBar Gasto
-  static const Color orangePrimary = Color(0xFFE64A19); // Naranja oscuro Status Bar
+  static const Color orangeHeader = Color(
+    0xFFFF5722,
+  ); // Naranja de AppBar Gasto
+  static const Color orangePrimary = Color(
+    0xFFE64A19,
+  ); // Naranja oscuro Status Bar
   static const Color grayIcons = Colors.grey;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<VehiculoViewModel>().cargarUltimoKilometraje();
-      context.read<GastoViewModel>().cargarGastos();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final vehiculoVM = context.read<VehiculoViewModel>();
+      final gastoMovVM = context.read<GastoMovimientoViewmodel>();
+
+      await vehiculoVM.cargarUltimoKilometraje();
+      await context.read<GastoViewModel>().cargarGastos();
+
+      final vehiculo = vehiculoVM.vehiculoActivo;
+      if (vehiculo != null) {
+        await gastoMovVM.calcularRangoOdometro(
+          vehiculoId: vehiculo.idVehiculo!,
+          fecha: _fecha,
+        );
+      }
     });
   }
 
@@ -58,9 +73,9 @@ class _AddGastoPageState extends State<AddGastoPage> {
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
       builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: orangeHeader),
-        ),
+        data: Theme.of(
+          context,
+        ).copyWith(colorScheme: const ColorScheme.light(primary: orangeHeader)),
         child: child!,
       ),
     );
@@ -76,6 +91,13 @@ class _AddGastoPageState extends State<AddGastoPage> {
         );
       });
     }
+    final vehiculo = context.read<VehiculoViewModel>().vehiculoActivo;
+    if (vehiculo != null) {
+      await context.read<GastoMovimientoViewmodel>().calcularRangoOdometro(
+        vehiculoId: vehiculo.idVehiculo!,
+        fecha: _fecha,
+      );
+    }
   }
 
   Future<void> _pickHora() async {
@@ -83,9 +105,9 @@ class _AddGastoPageState extends State<AddGastoPage> {
       context: context,
       initialTime: _hora,
       builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: orangeHeader),
-        ),
+        data: Theme.of(
+          context,
+        ).copyWith(colorScheme: const ColorScheme.light(primary: orangeHeader)),
         child: child!,
       ),
     );
@@ -121,9 +143,9 @@ class _AddGastoPageState extends State<AddGastoPage> {
     final vehiculo = vehiculoVM.vehiculoActivo;
 
     if (vehiculo == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No hay vehículo activo')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No hay vehículo activo')));
       return;
     }
 
@@ -149,14 +171,14 @@ class _AddGastoPageState extends State<AddGastoPage> {
 
     final List<GastoDetalleForm>? seleccion =
         await Navigator.push<List<GastoDetalleForm>>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SeleccionarGastosPage(
-          gastos: gastoVM.gastos,
-          actuales: _detalles,
-        ),
-      ),
-    );
+          context,
+          MaterialPageRoute(
+            builder: (_) => SeleccionarGastosPage(
+              gastos: gastoVM.gastos,
+              actuales: _detalles,
+            ),
+          ),
+        );
 
     if (seleccion != null) {
       setState(() {
@@ -175,6 +197,11 @@ class _AddGastoPageState extends State<AddGastoPage> {
     final vehiculoVM = context.watch<VehiculoViewModel>();
     final ultimoKm = vehiculoVM.ultimoKilometraje;
 
+    final gastoMovVM = context.watch<GastoMovimientoViewmodel>();
+
+    final minKm = gastoMovVM.odometroMinPermitido;
+    final maxKm = gastoMovVM.odometroMaxPermitido;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: orangePrimary,
@@ -187,7 +214,10 @@ class _AddGastoPageState extends State<AddGastoPage> {
           title: const Text('Gasto', style: TextStyle(color: Colors.white)),
           iconTheme: const IconThemeData(color: Colors.white),
           actions: [
-            IconButton(icon: const Icon(Icons.check, color: Colors.white), onPressed: _guardar),
+            IconButton(
+              icon: const Icon(Icons.check, color: Colors.white),
+              onPressed: _guardar,
+            ),
           ],
         ),
         body: SingleChildScrollView(
@@ -201,12 +231,19 @@ class _AddGastoPageState extends State<AddGastoPage> {
                     const Icon(Icons.calendar_today_outlined, color: grayIcons),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _picker('Fecha',
-                          '${_fecha.day}/dic/${_fecha.year}', _pickFecha),
+                      child: _picker(
+                        'Fecha',
+                        '${_fecha.day}/dic/${_fecha.year}',
+                        _pickFecha,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _picker('Hora', '${_hora.hour}:${_hora.minute.toString().padLeft(2, '0')}', _pickHora),
+                      child: _picker(
+                        'Hora',
+                        '${_hora.hour}:${_hora.minute.toString().padLeft(2, '0')}',
+                        _pickHora,
+                      ),
                     ),
                   ],
                 ),
@@ -216,11 +253,16 @@ class _AddGastoPageState extends State<AddGastoPage> {
                   controller: _odometroCtrl,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    icon: const Icon(Icons.shutter_speed_outlined, color: grayIcons),
+                    icon: const Icon(
+                      Icons.shutter_speed_outlined,
+                      color: grayIcons,
+                    ),
                     labelText: 'Odómetro',
                     labelStyle: const TextStyle(color: Colors.grey),
-                    helperText: 'Último: ${ultimoKm?.toInt() ?? 0} km',
-                    focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: orangeHeader)),
+                    helperText: _buildHelperKm(minKm, maxKm),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: orangeHeader),
+                    ),
                   ),
                   validator: (v) {
                     final val = double.tryParse(v ?? '');
@@ -248,15 +290,30 @@ class _AddGastoPageState extends State<AddGastoPage> {
                             child: TextButton.icon(
                               onPressed: _abrirSelectorGastos,
                               icon: const Icon(Icons.add, color: orangeHeader),
-                              label: const Text('Tipo de gasto', style: TextStyle(color: orangeHeader, fontSize: 16)),
+                              label: const Text(
+                                'Tipo de gasto',
+                                style: TextStyle(
+                                  color: orangeHeader,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                           ),
                           const Divider(),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Costo total', style: TextStyle(fontSize: 16)),
-                              Text('MXN ${_total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              const Text(
+                                'Costo total',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                              Text(
+                                'MXN ${_total.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -273,7 +330,9 @@ class _AddGastoPageState extends State<AddGastoPage> {
                     icon: Icon(Icons.notes, color: grayIcons),
                     labelText: 'Observaciones',
                     labelStyle: TextStyle(color: Colors.grey),
-                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: orangeHeader)),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: orangeHeader),
+                    ),
                   ),
                   maxLines: 3,
                 ),
@@ -285,16 +344,31 @@ class _AddGastoPageState extends State<AddGastoPage> {
     );
   }
 
+  String _buildHelperKm(double? min, double? max) {
+    if (min != null && max != null) {
+      return 'Entre ${min.toInt()} y ${max.toInt()} km';
+    }
+    if (min != null) {
+      return 'Mayor o igual a ${min.toInt()} km';
+    }
+    return '';
+  }
+
   Widget _buildItemGasto(GastoDetalleForm d) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: Text(d.gasto.nombre, style: const TextStyle(fontSize: 16))),
+          Expanded(
+            child: Text(d.gasto.nombre, style: const TextStyle(fontSize: 16)),
+          ),
           Row(
             children: [
-              Text('MXN ${d.precio.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16)),
+              Text(
+                'MXN ${d.precio.toStringAsFixed(2)}',
+                style: const TextStyle(fontSize: 16),
+              ),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => setState(() => _detalles.remove(d)),
@@ -314,7 +388,9 @@ class _AddGastoPageState extends State<AddGastoPage> {
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(color: Colors.grey),
-          focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: orangeHeader)),
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: orangeHeader),
+          ),
         ),
         child: Text(value, style: const TextStyle(fontSize: 16)),
       ),
@@ -336,8 +412,7 @@ class SeleccionarGastosPage extends StatefulWidget {
   });
 
   @override
-  State<SeleccionarGastosPage> createState() =>
-      _SeleccionarGastosPageState();
+  State<SeleccionarGastosPage> createState() => _SeleccionarGastosPageState();
 }
 
 class _SeleccionarGastosPageState extends State<SeleccionarGastosPage> {
@@ -362,8 +437,13 @@ class _SeleccionarGastosPageState extends State<SeleccionarGastosPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF009688), // Teal de la imagen del selector
-        title: const Text('Tipos de gastos', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(
+          0xFF009688,
+        ), // Teal de la imagen del selector
+        title: const Text(
+          'Tipos de gastos',
+          style: TextStyle(color: Colors.white),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
@@ -395,8 +475,11 @@ class _SeleccionarGastosPageState extends State<SeleccionarGastosPage> {
               ),
               if (item.seleccionado)
                 Padding(
-                  padding:
-                      const EdgeInsets.only(left: 72, right: 16, bottom: 12),
+                  padding: const EdgeInsets.only(
+                    left: 72,
+                    right: 16,
+                    bottom: 12,
+                  ),
                   child: TextField(
                     controller: item.precioCtrl,
                     keyboardType: TextInputType.number,
@@ -405,7 +488,9 @@ class _SeleccionarGastosPageState extends State<SeleccionarGastosPage> {
                       labelText: 'Valor',
                       labelStyle: TextStyle(color: Color(0xFF009688)),
                       isDense: true,
-                      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF009688))),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFF009688)),
+                      ),
                     ),
                   ),
                 ),
@@ -428,8 +513,9 @@ class _GastoSeleccionable {
     required this.gasto,
     this.seleccionado = false,
     double? precioInicial,
-  }) : precioCtrl =
-            TextEditingController(text: precioInicial?.toString() ?? '');
+  }) : precioCtrl = TextEditingController(
+         text: precioInicial?.toString() ?? '',
+       );
 }
 
 class GastoDetalleForm {

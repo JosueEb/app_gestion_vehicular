@@ -6,6 +6,7 @@ import '../../models/movimiento_detalle.dart';
 import '../../models/tipo_gasto.dart';
 import '../../viewmodels/gasto_viewmodel.dart';
 import '../../viewmodels/gasto_movimiento_viewmodel.dart';
+import '../../viewmodels/vehiculo_viewmodel.dart';
 
 class EditGastoPage extends StatefulWidget {
   final int idMovimiento;
@@ -39,12 +40,20 @@ class _EditGastoPageState extends State<EditGastoPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final gastoVM = context.read<GastoViewModel>();
       final gastoMovVM = context.read<GastoMovimientoViewmodel>();
+      final vehiculoVM = context.read<VehiculoViewModel>();
 
-      // Cargamos el catálogo de tipos de gastos
       await gastoVM.cargarGastos();
-
-      // Preparamos los datos del movimiento específico
       await gastoMovVM.prepararEdicion(widget.idMovimiento);
+
+      final vehiculo = vehiculoVM.vehiculoActivo;
+      final movimiento = gastoMovVM.movimientoSeleccionado;
+
+      if (vehiculo != null && movimiento != null) {
+        await gastoMovVM.calcularRangoOdometro(
+          vehiculoId: vehiculo.idVehiculo!,
+          fecha: movimiento.fecha,
+        );
+      }
 
       _cargarDatosIniciales();
     });
@@ -118,6 +127,14 @@ class _EditGastoPageState extends State<EditGastoPage> {
           _hora.minute,
         );
       });
+    }
+
+    final vehiculo = context.read<VehiculoViewModel>().vehiculoActivo;
+    if (vehiculo != null) {
+      context.read<GastoMovimientoViewmodel>().calcularRangoOdometro(
+        vehiculoId: vehiculo.idVehiculo!,
+        fecha: _fecha,
+      );
     }
   }
 
@@ -199,6 +216,8 @@ class _EditGastoPageState extends State<EditGastoPage> {
   @override
   Widget build(BuildContext context) {
     final gastoMovVM = context.watch<GastoMovimientoViewmodel>();
+    final minKm = gastoMovVM.odometroMinPermitido;
+    final maxKm = gastoMovVM.odometroMaxPermitido;
 
     if (gastoMovVM.isLoading && !_datosCargados) {
       return const Scaffold(
@@ -255,18 +274,36 @@ class _EditGastoPageState extends State<EditGastoPage> {
                   ],
                 ),
                 const SizedBox(height: 20),
+
                 TextFormField(
                   controller: _odometroCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    icon: Icon(Icons.shutter_speed_outlined, color: grayIcons),
+                  decoration: InputDecoration(
+                    icon: const Icon(
+                      Icons.shutter_speed_outlined,
+                      color: grayIcons,
+                    ),
                     labelText: 'Odómetro',
-                    labelStyle: TextStyle(color: Colors.grey),
-                    focusedBorder: UnderlineInputBorder(
+                    labelStyle: const TextStyle(color: Colors.grey),
+                    helperText: _buildHelperKm(minKm, maxKm),
+                    focusedBorder: const UnderlineInputBorder(
                       borderSide: BorderSide(color: orangeHeader),
                     ),
                   ),
+                  validator: (v) {
+                    final val = double.tryParse(v ?? '');
+                    if (val == null) return 'Valor inválido';
+
+                    if (minKm != null && val < minKm) {
+                      return 'No puede ser menor a ${minKm.toInt()} km';
+                    }
+                    if (maxKm != null && val > maxKm) {
+                      return 'No puede ser mayor a ${maxKm.toInt()} km';
+                    }
+                    return null;
+                  },
                 ),
+
                 const SizedBox(height: 20),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,6 +369,20 @@ class _EditGastoPageState extends State<EditGastoPage> {
         ),
       ),
     );
+  }
+
+  String _buildHelperKm(double? min, double? max) {
+    if (min == null && max == null) return '';
+
+    if (min != null && max != null) {
+      return 'Mín: ${min.toInt()} km · Máx: ${max.toInt()} km';
+    }
+
+    if (min != null) {
+      return 'Mín: ${min.toInt()} km';
+    }
+
+    return 'Máx: ${max!.toInt()} km';
   }
 
   Widget _buildItemGasto(MovimientoDetalle d) {

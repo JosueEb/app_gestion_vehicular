@@ -25,13 +25,23 @@ class _AddServicioPageState extends State<AddServicioPage> {
   TimeOfDay _hora = TimeOfDay.now();
 
   final List<ServicioDetalleForm> _detalles = [];
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<VehiculoViewModel>().cargarUltimoKilometraje();
+      final vehiculoVM = context.read<VehiculoViewModel>();
+      final servicioMovVM = context.read<ServicioMovimientoViewModel>();
+
+      vehiculoVM.cargarUltimoKilometraje();
       context.read<ServicioViewModel>().cargarServicios();
+
+      final vehiculo = vehiculoVM.vehiculoActivo;
+      if (vehiculo != null) {
+        servicioMovVM.calcularRangoOdometro(
+          vehiculoId: vehiculo.idVehiculo!,
+          fecha: _fecha,
+        );
+      }
     });
   }
 
@@ -65,6 +75,14 @@ class _AddServicioPageState extends State<AddServicioPage> {
           _hora.minute,
         );
       });
+
+      final vehiculo = context.read<VehiculoViewModel>().vehiculoActivo;
+      if (vehiculo != null) {
+        context.read<ServicioMovimientoViewModel>().calcularRangoOdometro(
+          vehiculoId: vehiculo.idVehiculo!,
+          fecha: _fecha,
+        );
+      }
     }
   }
 
@@ -194,6 +212,10 @@ class _AddServicioPageState extends State<AddServicioPage> {
   Widget build(BuildContext context) {
     final vehiculoVM = context.watch<VehiculoViewModel>();
     final ultimoKm = vehiculoVM.ultimoKilometraje;
+    final servicioMovVM = context.watch<ServicioMovimientoViewModel>();
+
+    final minKm = servicioMovVM.odometroMinPermitido;
+    final maxKm = servicioMovVM.odometroMaxPermitido;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -243,14 +265,24 @@ class _AddServicioPageState extends State<AddServicioPage> {
                   decoration: InputDecoration(
                     icon: const Icon(Icons.shutter_speed_outlined),
                     labelText: 'Odómetro',
-                    helperText: 'Último odómetro: ${ultimoKm?.toInt() ?? 0} km',
+                    helperText: _buildHelperKm(
+                      minKm,
+                      maxKm,
+                      ultimoKm?.toDouble(),
+                    ),
                   ),
                   validator: (v) {
                     final val = double.tryParse(v ?? '');
                     if (val == null) return 'Valor inválido';
-                    if (ultimoKm != null && val < ultimoKm) {
-                      return 'No puede ser menor a $ultimoKm km';
+
+                    if (minKm != null && val < minKm) {
+                      return 'Debe ser ≥ ${minKm.toInt()} km';
                     }
+
+                    if (maxKm != null && val > maxKm) {
+                      return 'Debe ser ≤ ${maxKm.toInt()} km';
+                    }
+
                     return null;
                   },
                 ),
@@ -298,6 +330,15 @@ class _AddServicioPageState extends State<AddServicioPage> {
         ),
       ),
     );
+  }
+
+  String _buildHelperKm(double? min, double? max, double? ultimo) {
+    if (min != null && max != null) {
+      return 'Entre ${min.toInt()} y ${max.toInt()} km';
+    }
+    if (min != null) return 'Mínimo ${min.toInt()} km';
+    if (max != null) return 'Máximo ${max.toInt()} km';
+    return 'Último: ${ultimo ?? 0} km';
   }
 
   Widget _buildItemServicio(ServicioDetalleForm d) {

@@ -43,6 +43,14 @@ class _EditServicioPageState extends State<EditServicioPage> {
       await servicioVM.cargarServicios();
       await servicioMovVM.prepararEdicion(widget.idMovimiento);
 
+      final movimiento = servicioMovVM.movimientoSeleccionado;
+      if (movimiento != null) {
+        await servicioMovVM.calcularRangoOdometro(
+          vehiculoId: movimiento.idVehiculo,
+          fecha: movimiento.fecha,
+        );
+      }
+
       _cargarDatosIniciales();
     });
   }
@@ -109,6 +117,15 @@ class _EditServicioPageState extends State<EditServicioPage> {
           _hora.minute,
         );
       });
+    }
+    final servicioMovVM = context.read<ServicioMovimientoViewModel>();
+    final movimiento = servicioMovVM.movimientoSeleccionado;
+
+    if (movimiento != null) {
+      servicioMovVM.calcularRangoOdometro(
+        vehiculoId: movimiento.idVehiculo,
+        fecha: _fecha,
+      );
     }
   }
 
@@ -185,6 +202,9 @@ class _EditServicioPageState extends State<EditServicioPage> {
   Widget build(BuildContext context) {
     final servicioMovVM = context.watch<ServicioMovimientoViewModel>();
 
+    final minKm = servicioMovVM.odometroMinPermitido;
+    final maxKm = servicioMovVM.odometroMaxPermitido;
+
     if (servicioMovVM.isLoading && !_datosCargados) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator(color: servicioHeader)),
@@ -235,20 +255,42 @@ class _EditServicioPageState extends State<EditServicioPage> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 20),
+
                 TextFormField(
                   controller: _odometroCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    icon: Icon(Icons.shutter_speed_outlined, color: grayIcons),
+                  decoration: InputDecoration(
+                    icon: const Icon(
+                      Icons.shutter_speed_outlined,
+                      color: grayIcons,
+                    ),
                     labelText: 'Odómetro',
-                    labelStyle: TextStyle(color: Colors.grey),
-                    focusedBorder: UnderlineInputBorder(
+                    helperText: _buildHelperKm(minKm, maxKm),
+                    labelStyle: const TextStyle(color: Colors.grey),
+                    focusedBorder: const UnderlineInputBorder(
                       borderSide: BorderSide(color: servicioHeader),
                     ),
                   ),
+                  validator: (v) {
+                    final val = double.tryParse(v ?? '');
+                    if (val == null) return 'Valor inválido';
+
+                    if (minKm != null && val < minKm) {
+                      return 'Debe ser ≥ ${minKm.toInt()} km';
+                    }
+
+                    if (maxKm != null && val > maxKm) {
+                      return 'Debe ser ≤ ${maxKm.toInt()} km';
+                    }
+
+                    return null;
+                  },
                 ),
+
                 const SizedBox(height: 20),
+
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -346,6 +388,15 @@ class _EditServicioPageState extends State<EditServicioPage> {
         ],
       ),
     );
+  }
+
+  String _buildHelperKm(double? min, double? max) {
+    if (min != null && max != null) {
+      return 'Entre ${min.toInt()} y ${max.toInt()} km';
+    }
+    if (min != null) return 'Mínimo ${min.toInt()} km';
+    if (max != null) return 'Máximo ${max.toInt()} km';
+    return '';
   }
 
   Widget _picker(String label, String value, VoidCallback onTap) {

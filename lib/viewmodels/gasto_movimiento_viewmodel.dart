@@ -217,4 +217,22 @@ class GastoMovimientoViewmodel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  double? odometroMinPermitido;
+  double? odometroMaxPermitido;
+
+  Future<void> calcularRangoOdometro({
+    required int vehiculoId,
+    required DateTime fecha,
+  }) async {
+    final rango = await _repository.obtenerRangoOdometroPorFecha(
+      vehiculoId: vehiculoId,
+      fecha: fecha,
+    );
+
+    odometroMinPermitido = rango['anterior'];
+    odometroMaxPermitido = rango['siguiente'];
+
+    notifyListeners();
+  }
 }

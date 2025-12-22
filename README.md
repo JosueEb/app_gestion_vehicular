@@ -60,3 +60,10 @@ En `main.dart`:
 -   Se configura el formato de fechas (`initializeDateFormatting`).
 -   Se levanta el `MultiProvider` con todos los ViewModels.
 -   Se carga el vehículo activo al inicio (`VehiculoViewModel().obtenerVehiculoActivo()`).
+
+## Pendientes
+validación del kilometraje para gastos y servicios
+Sección informes
+Sección recordatorios
+Notificaciones
+Sección de mas

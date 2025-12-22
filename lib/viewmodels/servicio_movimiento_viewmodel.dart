@@ -14,8 +14,7 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
 
   final List<MovimientoDetalle> _detalles = [];
 
-  List<MovimientoDetalle> get detalles =>
-      List.unmodifiable(_detalles);
+  List<MovimientoDetalle> get detalles => List.unmodifiable(_detalles);
 
   // =====================
   // DETALLES
@@ -37,8 +36,7 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  double get total =>
-      _detalles.fold(0, (sum, d) => sum + d.subtotal);
+  double get total => _detalles.fold(0, (sum, d) => sum + d.subtotal);
 
   // =====================
   // REGISTRO
@@ -88,7 +86,7 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-    Movimiento? _movimiento;
+  Movimiento? _movimiento;
   List<MovimientoDetalle> _detallesMovimiento = [];
 
   Movimiento? get movimiento => _movimiento;
@@ -113,6 +111,7 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   // Propiedades para la edición
   Movimiento? _movimientoSeleccionado;
   List<MovimientoDetalle> _detallesSeleccionados = [];
@@ -147,7 +146,6 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
-
 
   Future<void> actualizarServicio({
     required int idMovimiento,
@@ -219,5 +217,23 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  double? odometroMinPermitido;
+  double? odometroMaxPermitido;
+
+  Future<void> calcularRangoOdometro({
+    required int vehiculoId,
+    required DateTime fecha,
+  }) async {
+    final rango = await _repository.obtenerRangoOdometroPorFecha(
+      vehiculoId: vehiculoId,
+      fecha: fecha,
+    );
+
+    odometroMinPermitido = rango['anterior'];
+    odometroMaxPermitido = rango['siguiente'];
+
+    notifyListeners();
   }
 }
