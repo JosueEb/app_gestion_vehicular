@@ -267,10 +267,20 @@ class DatabaseHelper {
   CREATE TABLE recordatorios (
     id_recordatorio INTEGER PRIMARY KEY AUTOINCREMENT,
     id_vehiculo INTEGER NOT NULL,
-    tipo_recordatorio TEXT,
-    fecha_programada TEXT,
-    odometro_objetivo REAL,
-    notificado INTEGER DEFAULT 0,
+    tipo_recordatorio TEXT NOT NULL,        -- 'gasto' | 'servicio'
+    id_referencia INTEGER,                  -- id_tipo_gasto o id_tipo_servicio (opcional)
+    frecuencia TEXT NOT NULL,               -- 'una_vez' | 'repetir'
+    por_km INTEGER NOT NULL DEFAULT 0,       -- 0 / 1
+    km_objetivo REAL,                       -- si por_km = 1
+    km_intervalo REAL,                      -- si frecuencia = repetir
+    por_fecha INTEGER NOT NULL DEFAULT 0,   -- 0 / 1
+    fecha_objetivo TEXT,                    -- ISO string
+    fecha_intervalo INTEGER,                -- días (si repetir)
+    notas TEXT,
+    activo INTEGER NOT NULL DEFAULT 1,      -- permite desactivar sin borrar
+    notificado INTEGER NOT NULL DEFAULT 0,  -- ya disparó
+    fecha_notificacion TEXT,                -- cuándo se disparó
+    created_at TEXT NOT NULL,
     FOREIGN KEY (id_vehiculo) REFERENCES vehiculos(id_vehiculo)
   );
   ''';

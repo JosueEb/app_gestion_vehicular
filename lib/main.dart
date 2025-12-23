@@ -10,12 +10,15 @@ import 'viewmodels/servicio_movimiento_viewmodel.dart';
 import 'viewmodels/historico_viewmodel.dart';
 import 'viewmodels/gasto_viewmodel.dart';
 import 'viewmodels/gasto_movimiento_viewmodel.dart';
+import 'services/notification_service.dart';
+import 'viewmodels/recordatorio_viewmodel.dart';
 
 import 'ui/app_start_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es', null);
+  await NotificationService.init();
   runApp(
     MultiProvider(
       providers: [
@@ -26,6 +29,8 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => HistoricoViewModel()),
         ChangeNotifierProvider(create: (_) => GastoViewModel()),
         ChangeNotifierProvider(create: (_) => GastoMovimientoViewmodel()),
+        ChangeNotifierProvider(create: (_) => RecordatorioViewModel()),
+
         /// Vehículo activo
         ChangeNotifierProvider(
           create: (_) {

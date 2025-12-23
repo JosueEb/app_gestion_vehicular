@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppPreferences {
@@ -54,5 +55,21 @@ class AppPreferences {
   static Future<int?> getCombustibleActivo() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(_combustibleActivoKey) ?? 1;
+  }
+
+  static const _notifHourKey = 'notif_hour';
+  static const _notifMinuteKey = 'notif_minute';
+
+  static Future<void> setHoraNotificacion(TimeOfDay time) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_notifHourKey, time.hour);
+    await prefs.setInt(_notifMinuteKey, time.minute);
+  }
+
+  static Future<TimeOfDay> getHoraNotificacion() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hour = prefs.getInt(_notifHourKey) ?? 17; // 5 PM default
+    final minute = prefs.getInt(_notifMinuteKey) ?? 05;
+    return TimeOfDay(hour: hour, minute: minute);
   }
 }

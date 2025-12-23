@@ -9,6 +9,7 @@ import '../mas/mas_page.dart';
 import 'widgets/bottom_menu.dart';
 import '../shared/app_colors.dart';
 import '../recargas/add_recarga_page.dart';
+import '../recordatorios/add_recordatorio_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -54,6 +55,17 @@ class _HomePageState extends State<HomePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _AddItem(
+                icon: Icons.alarm,
+                label: 'Recordatorio',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddRecordatorioPage()),
+                  );
+                },
+              ),
+              _AddItem(
                 icon: Icons.build,
                 label: 'Servicio',
                 onTap: () {
@@ -70,8 +82,8 @@ class _HomePageState extends State<HomePage> {
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
-                      context,
-                  MaterialPageRoute(builder: (_) => const AddGastoPage())
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddGastoPage()),
                   );
                 },
               ),
