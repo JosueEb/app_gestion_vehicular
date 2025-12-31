@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import 'viewmodels/reporte_general_viewmodel.dart';
 import 'viewmodels/vehiculo_viewmodel.dart';
 import 'viewmodels/recarga_viewmodel.dart';
 import 'viewmodels/combustible_viewmodel.dart';
@@ -30,6 +31,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => GastoViewModel()),
         ChangeNotifierProvider(create: (_) => GastoMovimientoViewmodel()),
         ChangeNotifierProvider(create: (_) => RecordatorioViewModel()),
+        ChangeNotifierProvider(create: (_) => ReporteGeneralViewModel()),
 
         /// Vehículo activo
         ChangeNotifierProvider(

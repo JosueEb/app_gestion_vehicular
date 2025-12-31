@@ -27,13 +27,26 @@ class GastoViewModel extends ChangeNotifier {
   void seleccionarGasto(TipoGasto gasto) {
     gastoSeleccionado = gasto;
     notifyListeners();
-  }  
+  }
 
   void insertarGasto(TipoGasto gasto) async {
     isLoading = true;
     notifyListeners();
     await _repository.insertarTipoGasto(gasto);
     await cargarGastos();
+    isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> crearGasto(String nombre) async {
+    isLoading = true;
+    notifyListeners();
+
+    final servicio = TipoGasto(idTipoGasto: null, nombre: nombre);
+
+    await _repository.insertarTipoGasto(servicio);
+    await cargarGastos();
+
     isLoading = false;
     notifyListeners();
   }

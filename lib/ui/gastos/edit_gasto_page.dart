@@ -7,6 +7,7 @@ import '../../models/tipo_gasto.dart';
 import '../../viewmodels/gasto_viewmodel.dart';
 import '../../viewmodels/gasto_movimiento_viewmodel.dart';
 import '../../viewmodels/vehiculo_viewmodel.dart';
+import 'add_tipo_gasto_page.dart';
 
 class EditGastoPage extends StatefulWidget {
   final int idMovimiento;
@@ -259,7 +260,7 @@ class _EditGastoPageState extends State<EditGastoPage> {
                     Expanded(
                       child: _picker(
                         'Fecha',
-                        '${_fecha.day}/dic/${_fecha.year}',
+                        '${_fecha.day}/${_fecha.month}/${_fecha.year}',
                         _pickFecha,
                       ),
                     ),
@@ -434,7 +435,7 @@ class _EditGastoPageState extends State<EditGastoPage> {
 
 class SeleccionarGastosPage extends StatefulWidget {
   final List<TipoGasto> gastos;
-  final List<MovimientoDetalle> actuales; // 👈 Cambiado a MovimientoDetalle
+  final List<MovimientoDetalle> actuales;
 
   const SeleccionarGastosPage({
     super.key,
@@ -447,21 +448,54 @@ class SeleccionarGastosPage extends StatefulWidget {
 }
 
 class _SeleccionarGastosPageState extends State<SeleccionarGastosPage> {
-  late List<_GastoSeleccionable> _items;
+  List<_GastoSeleccionable> _items = [];
 
   @override
   void initState() {
     super.initState();
-    _items = widget.gastos.map((g) {
-      final previo = widget.actuales.where(
+    _reconstruirItems(widget.gastos);
+  }
+
+  void _reconstruirItems(List<TipoGasto> gastos) {
+    final previos = {for (final i in _items) i.gasto.idTipoGasto!: i};
+
+    _items = gastos.map((g) {
+      final previo = previos[g.idTipoGasto];
+      final actual = widget.actuales.firstWhere(
         (a) => a.idReferencia == g.idTipoGasto,
+        orElse: () => MovimientoDetalle(
+          tipoDetalle: 'gasto',
+          idReferencia: g.idTipoGasto,
+          descripcion: g.nombre,
+          cantidad: 1,
+          precioUnitario: 0,
+          subtotal: 0,
+        ),
       );
+
       return _GastoSeleccionable(
         gasto: g,
-        seleccionado: previo.isNotEmpty,
-        precioInicial: previo.isNotEmpty ? previo.first.precioUnitario : null,
+        seleccionado: previo?.seleccionado ?? actual.precioUnitario > 0,
+        precioInicial: previo != null && previo.precioCtrl.text.isNotEmpty
+            ? double.tryParse(previo.precioCtrl.text)
+            : actual.precioUnitario > 0
+            ? actual.precioUnitario
+            : null,
       );
     }).toList();
+  }
+
+  Future<void> _abrirNuevoGasto() async {
+    final ok = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddTipoGastoPage()),
+    );
+
+    if (ok == true && mounted) {
+      final gastoVM = context.read<GastoViewModel>();
+      await gastoVM.cargarGastos();
+      setState(() => _reconstruirItems(gastoVM.gastos));
+    }
   }
 
   @override
@@ -485,11 +519,20 @@ class _SeleccionarGastosPageState extends State<SeleccionarGastosPage> {
                   subtotal: precio,
                 );
               }).toList();
+
               Navigator.pop(context, seleccion);
             },
           ),
         ],
       ),
+
+      // 🔥 FAB NUEVO
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF009688),
+        onPressed: _abrirNuevoGasto,
+        child: const Icon(Icons.add),
+      ),
+
       body: ListView.builder(
         itemCount: _items.length,
         itemBuilder: (_, i) {

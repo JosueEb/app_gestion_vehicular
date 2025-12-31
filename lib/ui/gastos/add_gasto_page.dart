@@ -7,6 +7,7 @@ import '../../models/tipo_gasto.dart';
 import '../../viewmodels/vehiculo_viewmodel.dart';
 import '../../viewmodels/gasto_viewmodel.dart';
 import '../../viewmodels/gasto_movimiento_viewmodel.dart';
+import 'add_tipo_gasto_page.dart';
 
 class AddGastoPage extends StatefulWidget {
   const AddGastoPage({super.key});
@@ -194,8 +195,8 @@ class _AddGastoPageState extends State<AddGastoPage> {
   // ─────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final vehiculoVM = context.watch<VehiculoViewModel>();
-    final ultimoKm = vehiculoVM.ultimoKilometraje;
+    // final vehiculoVM = context.watch<VehiculoViewModel>();
+    // final ultimoKm = vehiculoVM.ultimoKilometraje;
 
     final gastoMovVM = context.watch<GastoMovimientoViewmodel>();
 
@@ -233,7 +234,7 @@ class _AddGastoPageState extends State<AddGastoPage> {
                     Expanded(
                       child: _picker(
                         'Fecha',
-                        '${_fecha.day}/dic/${_fecha.year}',
+                        '${_fecha.day}/${_fecha.month}/${_fecha.year}',
                         _pickFecha,
                       ),
                     ),
@@ -267,8 +268,12 @@ class _AddGastoPageState extends State<AddGastoPage> {
                   validator: (v) {
                     final val = double.tryParse(v ?? '');
                     if (val == null) return 'Valor inválido';
-                    if (ultimoKm != null && val < ultimoKm) {
-                      return 'No puede ser menor a $ultimoKm km';
+
+                    if (minKm != null && val < minKm) {
+                      return 'No puede ser menor a ${minKm.toInt()} km';
+                    }
+                    if (maxKm != null && val > maxKm) {
+                      return 'No puede ser mayor a ${maxKm.toInt()} km';
                     }
                     return null;
                   },
@@ -416,19 +421,32 @@ class SeleccionarGastosPage extends StatefulWidget {
 }
 
 class _SeleccionarGastosPageState extends State<SeleccionarGastosPage> {
-  late List<_GastoSeleccionable> _items;
+  List<_GastoSeleccionable> _items = [];
 
   @override
   void initState() {
     super.initState();
-    _items = widget.gastos.map((g) {
-      final previo = widget.actuales.where(
-        (a) => a.gasto.idTipoGasto == g.idTipoGasto,
-      );
+    _reconstruirItems(widget.gastos);
+  }
+
+  // 🔑 Método centralizado para reconstruir sin perder estado
+  void _reconstruirItems(List<TipoGasto> gastos) {
+    final previos = {for (final i in _items) i.gasto.idTipoGasto!: i};
+
+    _items = gastos.map((g) {
+      final previo = previos[g.idTipoGasto];
+
       return _GastoSeleccionable(
         gasto: g,
-        seleccionado: previo.isNotEmpty,
-        precioInicial: previo.isNotEmpty ? previo.first.precio : null,
+        seleccionado:
+            previo?.seleccionado ??
+            widget.actuales.any((a) => a.gasto.idTipoGasto == g.idTipoGasto),
+        precioInicial: previo?.precioCtrl.text.isNotEmpty == true
+            ? double.tryParse(previo!.precioCtrl.text)
+            : widget.actuales
+                  .where((a) => a.gasto.idTipoGasto == g.idTipoGasto)
+                  .map((a) => a.precio)
+                  .firstOrNull,
       );
     }).toList();
   }
@@ -437,9 +455,7 @@ class _SeleccionarGastosPageState extends State<SeleccionarGastosPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(
-          0xFF009688,
-        ), // Teal de la imagen del selector
+        backgroundColor: const Color(0xFF009688),
         title: const Text(
           'Tipos de gastos',
           style: TextStyle(color: Colors.white),
@@ -449,17 +465,28 @@ class _SeleccionarGastosPageState extends State<SeleccionarGastosPage> {
           IconButton(
             icon: const Icon(Icons.check, color: Colors.white),
             onPressed: () {
-              final seleccion = _items.where((i) => i.seleccionado).map((i) {
-                return GastoDetalleForm(
-                  gasto: i.gasto,
-                  precio: double.tryParse(i.precioCtrl.text) ?? 0,
-                );
-              }).toList();
+              final seleccion = _items
+                  .where((i) => i.seleccionado)
+                  .map(
+                    (i) => GastoDetalleForm(
+                      gasto: i.gasto,
+                      precio: double.tryParse(i.precioCtrl.text) ?? 0,
+                    ),
+                  )
+                  .toList();
+
               Navigator.pop(context, seleccion);
             },
           ),
         ],
       ),
+
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF009688),
+        child: const Icon(Icons.add),
+        onPressed: _nuevoGasto,
+      ),
+
       body: ListView.builder(
         itemCount: _items.length,
         itemBuilder: (_, i) {
@@ -500,6 +527,22 @@ class _SeleccionarGastosPageState extends State<SeleccionarGastosPage> {
         },
       ),
     );
+  }
+
+  Future<void> _nuevoGasto() async {
+    final creado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddTipoGastoPage()),
+    );
+
+    if (creado == true && mounted) {
+      final vm = context.read<GastoViewModel>();
+      await vm.cargarGastos();
+
+      setState(() {
+        _reconstruirItems(vm.gastos);
+      });
+    }
   }
 }
 
