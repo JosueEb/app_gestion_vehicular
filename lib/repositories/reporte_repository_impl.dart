@@ -103,22 +103,42 @@ class ReporteRepositoryImpl implements ReporteRepository {
     SELECT
       strftime('%Y', fecha) AS anio,
       strftime('%m', fecha) AS mes,
+      tipo_movimiento AS tipo,
       SUM(total) AS total
     FROM movimientos
     WHERE id_vehiculo = ?
-      AND tipo_movimiento = 'gasto'
       $whereFecha
-    GROUP BY anio, mes
+    GROUP BY anio, mes, tipo_movimiento
     ORDER BY anio, mes
   ''', args);
 
-    return res.map((e) {
-      return GastoMensual(
-        int.parse(e['anio'] as String),
-        int.parse(e['mes'] as String),
-        (e['total'] as num).toDouble(),
-      );
-    }).toList();
+    /// 🔑 Agrupación real por mes
+    final Map<String, GastoMensual> agrupados = {};
+
+    for (final row in res) {
+      final anio = int.parse(row['anio'] as String);
+      final mes = int.parse(row['mes'] as String);
+      final tipo = row['tipo'] as String;
+      final total = (row['total'] as num).toDouble();
+
+      final key = '$anio-$mes';
+
+      agrupados.putIfAbsent(key, () => GastoMensual(anio: anio, mes: mes));
+
+      switch (tipo) {
+        case 'combustible':
+          agrupados[key]!.recarga += total;
+          break;
+        case 'gasto':
+          agrupados[key]!.gasto += total;
+          break;
+        case 'servicio':
+          agrupados[key]!.servicio += total;
+          break;
+      }
+    }
+
+    return agrupados.values.toList();
   }
 
   @override
@@ -162,18 +182,16 @@ class ReporteRepositoryImpl implements ReporteRepository {
 
     final res = await db.rawQuery('''
     SELECT
-      tg.nombre AS nombre,
-      SUM(md.subtotal) AS total
+		m.tipo_movimiento as nombre,
+		SUM(m.total) as total
     FROM movimientos m
     JOIN movimiento_detalle md
       ON md.id_movimiento = m.id_movimiento
-    JOIN tipos_gasto tg
-      ON tg.id_tipo_gasto = md.id_referencia
     WHERE m.id_vehiculo = ?
-      AND m.tipo_movimiento = 'gasto'
       $whereFecha
-    GROUP BY tg.nombre
+    GROUP BY m.tipo_movimiento
     ORDER BY total DESC
+	
   ''', args);
 
     return res.map((e) {

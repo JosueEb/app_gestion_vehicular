@@ -100,6 +100,7 @@ class RecargaViewModel extends ChangeNotifier {
     required int idCombustible,
     required String observaciones,
     required bool tanqueLleno,
+    required String descripcion,
   }) async {
     isLoading = true;
     notifyListeners();
@@ -124,6 +125,7 @@ class RecargaViewModel extends ChangeNotifier {
         precioUnitario: precioUnitario,
         subtotal: litros * precioUnitario,
         tanqueLleno: tanqueLleno,
+        descripcion: descripcion,
       );
 
       await _repository.actualizarRecarga(

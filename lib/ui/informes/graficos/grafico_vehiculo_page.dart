@@ -225,20 +225,111 @@ class _GraficoVehiculoPageState extends State<GraficoVehiculoPage> {
       return const Center(child: Text('Sin gastos registrados'));
     }
 
-    final barGroups = gastos.asMap().entries.map((e) {
-      return BarChartGroupData(
-        x: e.key,
-        barRods: [
-          BarChartRodData(toY: e.value.total, color: Colors.orange, width: 18),
-        ],
+    final barGroups = <BarChartGroupData>[];
+
+    for (int i = 0; i < gastos.length; i++) {
+      final g = gastos[i];
+
+      double acumulado = 0;
+
+      final stacks = <BarChartRodStackItem>[];
+
+      if (g.recarga > 0) {
+        stacks.add(
+          BarChartRodStackItem(
+            acumulado,
+            acumulado + g.recarga,
+            const Color(0xFFFFC04D), // Recarga
+          ),
+        );
+        acumulado += g.recarga;
+      }
+
+      if (g.gasto > 0) {
+        stacks.add(
+          BarChartRodStackItem(
+            acumulado,
+            acumulado + g.gasto,
+            const Color(0xFFFF8C6B), // Gasto
+          ),
+        );
+        acumulado += g.gasto;
+      }
+
+      if (g.servicio > 0) {
+        stacks.add(
+          BarChartRodStackItem(
+            acumulado,
+            acumulado + g.servicio,
+            const Color(0xFF9C8A80), // Servicio
+          ),
+        );
+        acumulado += g.servicio;
+      }
+
+      barGroups.add(
+        BarChartGroupData(
+          x: i,
+          barRods: [
+            BarChartRodData(
+              toY: acumulado,
+              rodStackItems: stacks,
+              width: 20,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ],
+        ),
       );
-    }).toList();
+    }
 
     return BarChart(
       BarChartData(
-        alignment: BarChartAlignment.spaceAround,
-        titlesData: const FlTitlesData(show: false),
         barGroups: barGroups,
+        alignment: BarChartAlignment.spaceAround,
+        gridData: FlGridData(show: true),
+        borderData: FlBorderData(show: false),
+
+        /// EJES
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 42,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10),
+                );
+              },
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                final index = value.toInt();
+                if (index < 0 || index >= gastos.length) {
+                  return const SizedBox.shrink();
+                }
+
+                final g = gastos[index];
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    '${g.mes.toString().padLeft(2, '0')}/${g.anio}',
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                );
+              },
+            ),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
       ),
     );
   }
@@ -249,18 +340,37 @@ class _GraficoVehiculoPageState extends State<GraficoVehiculoPage> {
       return const Center(child: Text('Sin datos para comparar'));
     }
 
+    // Lista de colores para distinguir las secciones
+    final List<Color> colores = [
+      Colors.teal,
+      Colors.orange,
+      Colors.deepOrange,
+      Colors.brown,
+      Colors.blue,
+      Colors.purple,
+    ];
+
     return PieChart(
       PieChartData(
-        centerSpaceRadius: 50,
-        sections: datos.map((e) {
+        centerSpaceRadius: 50, // Radio del centro (efecto dona)
+        sectionsSpace: 2, // Separación mínima entre rebanadas
+        borderData: FlBorderData(show: false),
+        sections: datos.asMap().entries.map((entry) {
+          int idx = entry.key;
+          var e = entry.value;
+
           return PieChartSectionData(
             value: e.total,
-            title: e.total.toStringAsFixed(0),
+            color: colores[idx % colores.length], // Asigna color cíclico
+            title: '${e.total.toStringAsFixed(0)}',
             radius: 60,
+            showTitle: true,
             titleStyle: const TextStyle(
-              color: Colors.white,
+              fontSize: 12,
               fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
+            // Puedes añadir una insignia o etiqueta con e.tipo si lo deseas
           );
         }).toList(),
       ),

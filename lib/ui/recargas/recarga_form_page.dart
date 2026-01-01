@@ -208,6 +208,7 @@ class _RecargaFormPageState extends State<RecargaFormPage> {
       idCombustible: combustible.idCombustible!,
       observaciones: _obsCtrl.text,
       tanqueLleno: _tanqueLleno,
+      descripcion: combustible.nombre,
     );
 
     if (mounted) Navigator.pop(context);
