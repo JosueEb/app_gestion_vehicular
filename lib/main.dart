@@ -1,3 +1,4 @@
+import 'package:app_gestion_vehicular/viewmodels/reporte_recarga_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -32,6 +33,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => GastoMovimientoViewmodel()),
         ChangeNotifierProvider(create: (_) => RecordatorioViewModel()),
         ChangeNotifierProvider(create: (_) => ReporteGeneralViewModel()),
+        ChangeNotifierProvider(create: (_) => ReporteRecargaViewModel()),
 
         /// Vehículo activo
         ChangeNotifierProvider(
