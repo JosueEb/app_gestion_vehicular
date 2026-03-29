@@ -3,6 +3,18 @@
 ## Descripción
 **App Gestión Vehicular** es una aplicación desarrollada en Flutter diseñada para ayudar a los usuarios a llevar un control detallado de sus vehículos. Permite gestionar gastos, recargas de combustible, servicios de mantenimiento y llevar un histórico de actividades, todo almacenado localmente en el dispositivo.
 
+## Capturas de Pantalla
+<p align="center">
+  <img src="capturas/Simulator%20Screenshot%20-%20iPhone%2016%20Pro%20-%202026-03-29%20at%2015.05.39.png" alt="Pantalla principal" width="220" />
+  <img src="capturas/Simulator%20Screenshot%20-%20iPhone%2016%20Pro%20-%202026-03-29%20at%2015.06.30.png" alt="Detalle del vehiculo" width="220" />
+  <img src="capturas/Simulator%20Screenshot%20-%20iPhone%2016%20Pro%20-%202026-03-29%20at%2015.08.18.png" alt="Registro de combustible" width="220" />
+</p>
+
+<p align="center">
+  <img src="capturas/Simulator%20Screenshot%20-%20iPhone%2016%20Pro%20-%202026-03-29%20at%2015.09.14.png" alt="Listado de movimientos" width="220" />
+  <img src="capturas/Simulator%20Screenshot%20-%20iPhone%2016%20Pro%20-%202026-03-29%20at%2015.09.36.png" alt="Resumen del vehiculo" width="220" />
+</p>
+
 ## Arquitectura
 El proyecto sigue una arquitectura **MVVM (Model-View-ViewModel)** complementada con el **Patrón Repositorio** para desacoplar la lógica de negocio y la capa de datos de la interfaz de usuario.
 
@@ -67,3 +79,4 @@ Sección informes
 Sección recordatorios
 Notificaciones
 Sección de mas
+
