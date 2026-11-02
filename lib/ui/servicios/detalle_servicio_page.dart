@@ -63,7 +63,13 @@ class _ServicioDetallePageState extends State<ServicioDetallePage> {
                     idMovimiento: movimiento.idMovimiento ?? 0,
                   ),
                 ),
-              );
+              ).then((_) {
+                if (mounted) {
+                  context.read<ServicioMovimientoViewModel>().cargarServicioPorId(
+                    widget.idMovimiento,
+                  );
+                }
+              });
             },
           ),
         ],

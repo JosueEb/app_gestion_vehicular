@@ -120,7 +120,23 @@ class RecargaRepositoryImpl implements RecargaRepository {
       [idMovimiento],
     );
 
-    return result.isNotEmpty ? result.first : null;
+    if (result.isEmpty) return null;
+
+    final siguientes = await db.rawQuery(
+      '''
+        SELECT m.odometro, md.cantidad, md.subtotal, md.tanque_lleno
+        FROM movimientos m
+        INNER JOIN movimiento_detalle md
+          ON m.id_movimiento = md.id_movimiento
+        WHERE m.id_vehiculo = ?
+          AND m.tipo_movimiento = 'combustible'
+          AND m.fecha > ?
+        ORDER BY m.fecha ASC
+    ''',
+      [result.first['id_vehiculo'], result.first['fecha']],
+    );
+
+    return {...result.first, 'recargas_siguientes': siguientes};
   }
 
   @override

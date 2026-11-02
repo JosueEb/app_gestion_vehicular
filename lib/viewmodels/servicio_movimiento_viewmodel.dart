@@ -5,6 +5,8 @@ import '../models/movimiento_detalle.dart';
 import '../repositories/servicio_movimiento_repository.dart';
 import '../repositories/servicio_movimiento_repository_impl.dart';
 import '../services/app_preferences.dart';
+import '../services/movimientos_events.dart';
+import '../services/recordatorio_km_service.dart';
 
 class ServicioMovimientoViewModel extends ChangeNotifier {
   final ServicioMovimientoRepository _repository =
@@ -79,6 +81,11 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
       movimiento: movimiento,
       detalles: detalles,
     );
+    await RecordatorioKmService.evaluar(
+      vehiculoId: idVehiculo,
+      odometroActual: odometro,
+    );
+    MovimientosEvents.notificar();
 
     limpiarDetalles();
 
@@ -184,6 +191,11 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
         movimiento: movimiento,
         detalles: detalles,
       );
+      await RecordatorioKmService.evaluar(
+        vehiculoId: idVehiculo,
+        odometroActual: odometro,
+      );
+      MovimientosEvents.notificar();
 
       limpiarDetalles();
       _movimientoSeleccionado = null;
@@ -201,6 +213,7 @@ class ServicioMovimientoViewModel extends ChangeNotifier {
     try {
       // 1. Llamada al repositorio para ejecutar la transacción de borrado
       await _repository.eliminarServicio(idMovimiento);
+      MovimientosEvents.notificar();
 
       // 2. Limpiamos el movimiento cargado actualmente en memoria si es el mismo
       if (_movimiento?.idMovimiento == idMovimiento) {

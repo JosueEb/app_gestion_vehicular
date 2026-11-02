@@ -41,7 +41,7 @@ class HistoricoRepositoryImpl implements HistoricoRepository {
         LEFT JOIN movimiento_detalle md 
           ON md.id_movimiento = m.id_movimiento
         WHERE m.id_vehiculo = ?
-        ORDER BY m.fecha DESC;
+        ORDER BY m.fecha DESC, md.id_detalle ASC;
     ''', [vehiculoId]);
 
     final Map<int, MovimientoHistorico> map = {};

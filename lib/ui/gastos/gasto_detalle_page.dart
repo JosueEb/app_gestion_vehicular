@@ -114,7 +114,13 @@ class _GastoDetallePageState extends State<GastoDetallePage> {
                   builder: (_) =>
                       EditGastoPage(idMovimiento: movimiento.idMovimiento ?? 0),
                 ),
-              );
+              ).then((_) {
+                if (mounted) {
+                  context.read<GastoMovimientoViewmodel>().cargarGastoPorId(
+                    widget.idMovimiento,
+                  );
+                }
+              });
             },
           ),
         ],

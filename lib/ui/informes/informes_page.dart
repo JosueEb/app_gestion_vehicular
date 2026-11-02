@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+
+import '../../models/periodo_informe.dart';
+import 'widgets/graficas_reporte.dart';
 import 'widgets/reporte_general_widget.dart';
+import 'widgets/reporte_movimiento_widget.dart';
 import 'widgets/reporte_recarga_widget.dart';
-import 'widgets/reporte_generico_widget.dart';
 
 class InformesPage extends StatefulWidget {
   const InformesPage({super.key});
@@ -12,6 +15,7 @@ class InformesPage extends StatefulWidget {
 
 class _InformesPageState extends State<InformesPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  PeriodoInforme _periodo = PeriodoInforme.anio;
 
   // Definimos los colores para cada sección
   final List<Color> _seccionColors = [
@@ -25,13 +29,9 @@ class _InformesPageState extends State<InformesPage> with SingleTickerProviderSt
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    
+
     // Escuchamos el cambio de pestaña para actualizar el color de la UI
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging) {
-        setState(() {}); // Refresca para aplicar el nuevo color al indicador y letras
-      }
-    });
+    _tabController.addListener(() => setState(() {}));
   }
 
   @override
@@ -53,28 +53,56 @@ class _InformesPageState extends State<InformesPage> with SingleTickerProviderSt
             width: double.infinity,
             child: TabBar(
               controller: _tabController,
-              isScrollable: true,
-              // Propiedades para centrar las pestañas
-              tabAlignment: TabAlignment.center, 
-              
+              labelPadding: const EdgeInsets.symmetric(horizontal: 4),
               // Colores dinámicos
               indicatorColor: activeColor,
               labelColor: activeColor,
-              
+
               unselectedLabelColor: Colors.grey,
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               tabs: tabs.map((tab) => Tab(text: tab)).toList(),
             ),
           ),
           const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<PeriodoInforme>(
+                showSelectedIcon: false,
+                style: SegmentedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  selectedBackgroundColor: activeColor.withValues(alpha: 0.15),
+                ),
+                segments: [
+                  for (final p in PeriodoInforme.values)
+                    ButtonSegment(value: p, label: Text(p.etiqueta)),
+                ],
+                selected: {_periodo},
+                onSelectionChanged: (s) => setState(() => _periodo = s.first),
+              ),
+            ),
+          ),
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: const [
-                ReporteGeneralWidget(),
-                ReporteRecargaWidget(),
-                ReporteGenericoWidget(titulo: 'Gasto', colorAcento: Colors.deepOrange),
-                ReporteGenericoWidget(titulo: 'Servicio', colorAcento: Color(0xFF795548)),
+              children: [
+                ReporteGeneralWidget(periodo: _periodo),
+                ReporteRecargaWidget(periodo: _periodo),
+                ReporteMovimientoWidget(
+                  tipoMovimiento: 'gasto',
+                  etiquetaPlural: 'Gastos',
+                  colorAcento: Colors.deepOrange,
+                  colorSerie: colorGasto,
+                  periodo: _periodo,
+                ),
+                ReporteMovimientoWidget(
+                  tipoMovimiento: 'servicio',
+                  etiquetaPlural: 'Servicios',
+                  colorAcento: const Color(0xFF795548),
+                  colorSerie: colorServicio,
+                  periodo: _periodo,
+                ),
               ],
             ),
           ),

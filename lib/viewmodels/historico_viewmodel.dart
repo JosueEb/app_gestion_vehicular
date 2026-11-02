@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/historico_item_ui.dart';
+import '../models/resumen_historico.dart';
+import '../models/tramo_rendimiento.dart';
 import '../repositories/historico_repository.dart';
 import '../repositories/historico_repository_impl.dart';
 import 'package:intl/intl.dart';
@@ -13,14 +15,26 @@ class HistoricoViewModel extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  int? _itemExpandidoId;
-  int? get itemExpandidoId => _itemExpandidoId;
+  int? _vehiculoCargado;
+
+  /// null muestra todos los tipos
+  String? _filtroTipo;
+  String? get filtroTipo => _filtroTipo;
+
+  ResumenHistorico get resumen => calcularResumen(_movimientos, DateTime.now());
+
+  void cambiarFiltro(String? tipo) {
+    _filtroTipo = tipo;
+    notifyListeners();
+  }
 
   /// 🔥 AGRUPADO POR MES (ESTILO DRIVVO)
   Map<String, List<MovimientoHistorico>> get agrupadoPorMes {
     final Map<String, List<MovimientoHistorico>> map = {};
 
     for (final m in _movimientos) {
+      if (_filtroTipo != null && m.tipo != _filtroTipo) continue;
+
       final key = DateFormat('MMMM yyyy', 'es').format(m.fecha).toUpperCase();
 
       map.putIfAbsent(key, () => []);
@@ -31,24 +45,22 @@ class HistoricoViewModel extends ChangeNotifier {
   }
 
   Future<void> cargarHistorico(int vehiculoId) async {
-    _isLoading = true;
+    // Al refrescar el mismo vehículo la lista se conserva para no perder el scroll
+    _isLoading = _vehiculoCargado != vehiculoId;
     notifyListeners();
 
-    _movimientos
-      ..clear()
-      ..addAll(await _repository.obtenerHistorico(vehiculoId: vehiculoId));
-
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  void toggleExpansion(int id) {
-    if (_itemExpandidoId == id) {
-      _itemExpandidoId = null; // Si ya está abierto, se cierra
-    } else {
-      _itemExpandidoId = id; // Abre el nuevo y cierra el anterior
+    try {
+      final movimientos = await _repository.obtenerHistorico(
+        vehiculoId: vehiculoId,
+      );
+      _movimientos
+        ..clear()
+        ..addAll(movimientos);
+      _vehiculoCargado = vehiculoId;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Map<String, double>? obtenerEstadisticasCombustible(
@@ -63,14 +75,11 @@ class HistoricoViewModel extends ChangeNotifier {
 
     if (index == -1) return null;
 
-    // 2. Buscar la recarga SIGUIENTE (cronológicamente)
-    MovimientoHistorico? siguiente;
-    for (int i = index - 1; i >= 0; i--) {
-      if (_movimientos[i].tipo.toLowerCase() == 'combustible') {
-        siguiente = _movimientos[i];
-        break;
-      }
-    }
+    // 2. Recargas SIGUIENTES (cronológicamente)
+    final siguientes = [
+      for (int i = index - 1; i >= 0; i--)
+        if (_movimientos[i].tipo.toLowerCase() == 'combustible') _movimientos[i],
+    ];
 
     // 3. Litros cargados en la recarga actual
     double litrosCargados = 0;
@@ -85,11 +94,13 @@ class HistoricoViewModel extends ChangeNotifier {
     double kmRecorridos = 0;
     double rendimiento = 0;
 
-    if (siguiente != null && litrosCargados > 0) {
-      kmRecorridos = siguiente.odometro - actual.odometro;
-      if (kmRecorridos > 0) {
-        rendimiento = kmRecorridos / litrosCargados;
-      }
+    final tramo = calcularTramo(_tanque(actual), siguientes.map(_tanque));
+
+    if (tramo != null) {
+      kmRecorridos = tramo.km;
+      rendimiento = tramo.rendimiento;
+    } else if (siguientes.isNotEmpty && litrosCargados > 0) {
+      kmRecorridos = siguientes.first.odometro - actual.odometro;
     }
 
     // 5. Porcentaje del tanque (después de la recarga)
@@ -110,6 +121,13 @@ class HistoricoViewModel extends ChangeNotifier {
     };
   }
 
+  RecargaTanque _tanque(MovimientoHistorico m) => RecargaTanque(
+    odometro: m.odometro,
+    litros: m.detalles.isNotEmpty ? m.detalles.first.cantidad : 0,
+    costo: m.total,
+    tanqueLleno: m.detalles.isNotEmpty && m.detalles.first.tanqueLleno,
+  );
+
   Map<String, double>? obtenerEstadisticasDesdeMap(
     Map<String, dynamic> r,
     int tamanioTanque,
@@ -128,12 +146,23 @@ class HistoricoViewModel extends ChangeNotifier {
     double rendimiento = 0;
     double costoPorKm = 0;
 
-    // 🔥 USAR RECARGA SIGUIENTE
-    if (odometroSiguiente != null && odometroSiguiente > odometroActual) {
-      kmRecorridos = odometroSiguiente - odometroActual;
+    final siguientes = (r['recargas_siguientes'] as List<Map<String, dynamic>>?) ?? [];
+    final tramo = calcularTramo(
+      RecargaTanque(
+        odometro: odometroActual,
+        litros: litros,
+        costo: total,
+        tanqueLleno: tanqueLleno,
+      ),
+      siguientes.map(RecargaTanque.fromMap),
+    );
 
-      rendimiento = kmRecorridos / litros;
-      costoPorKm = total / kmRecorridos;
+    if (tramo != null) {
+      kmRecorridos = tramo.km;
+      rendimiento = tramo.rendimiento;
+      costoPorKm = tramo.costoPorKm;
+    } else if (odometroSiguiente != null && odometroSiguiente > odometroActual) {
+      kmRecorridos = odometroSiguiente - odometroActual;
     }
 
     // 🔥 Porcentaje del tanque

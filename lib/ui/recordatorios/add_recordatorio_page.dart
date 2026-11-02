@@ -52,6 +52,11 @@ class _AddRecordatorioPageState extends State<AddRecordatorioPage> {
       return;
     }
 
+    if (_porFecha && _fechaSeleccionada == null) {
+      _mostrarError('Seleccione la fecha objetivo');
+      return;
+    }
+
     final vehiculoId = await AppPreferences.getVehiculoActivo();
     if (vehiculoId == null) {
       _mostrarError('No hay vehículo activo');
@@ -62,7 +67,7 @@ class _AddRecordatorioPageState extends State<AddRecordatorioPage> {
       idVehiculo: vehiculoId,
       tipoRecordatorio: _tipoRecordatorio.toLowerCase(),
       frecuencia:
-          _frecuencia == 'Sólo una vez' ? 'una_vez' : 'repetido',
+          _frecuencia == 'Sólo una vez' ? 'una_vez' : 'repetir',
       porKm: _porKm,
       kmObjetivo: _porKm
           ? double.tryParse(_odometroController.text)

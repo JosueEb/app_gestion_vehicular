@@ -12,7 +12,6 @@ class ReporteGeneralViewModel extends ChangeNotifier {
 
   /// ===== Estado general =====
   bool isLoading = false;
-  bool cargandoGrafico = false;
   String? error;
 
   ReporteGeneralData? data;
@@ -38,63 +37,17 @@ class ReporteGeneralViewModel extends ChangeNotifier {
         desde: desde,
         hasta: hasta,
       );
-    } catch (e) {
-      error = e.toString();
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  /// ===== GRÁFICO ODÓMETRO =====
-  Future<void> cargarOdometro(int vehiculoId) async {
-    try {
-      cargandoGrafico = true;
-      notifyListeners();
-
-      puntosOdometro = await _repository.obtenerOdometro(vehiculoId);
-    } catch (e) {
-      error = e.toString();
-    } finally {
-      cargandoGrafico = false;
-      notifyListeners();
-    }
-  }
-
-  /// ===== GRÁFICO GASTOS MENSUALES =====
-  Future<void> cargarGastosMensuales({
-    required int vehiculoId,
-    DateTime? desde,
-    DateTime? hasta,
-  }) async {
-    try {
-      cargandoGrafico = true;
-      notifyListeners();
-
       gastosMensuales = await _repository.obtenerGastosMensuales(
         vehiculoId: vehiculoId,
         desde: desde,
         hasta: hasta,
       );
-    } catch (e) {
-      error = e.toString();
-    } finally {
-      cargandoGrafico = false;
-      notifyListeners();
-    }
-  }
-
-  /// ===== GRÁFICO COMPARATIVO =====
-  Future<void> cargarGastosPorTipo({
-    required int vehiculoId,
-    DateTime? desde,
-    DateTime? hasta,
-  }) async {
-    try {
-      cargandoGrafico = true;
-      notifyListeners();
-
       gastosPorTipo = await _repository.obtenerGastosPorTipo(
+        vehiculoId: vehiculoId,
+        desde: desde,
+        hasta: hasta,
+      );
+      puntosOdometro = await _repository.obtenerOdometro(
         vehiculoId: vehiculoId,
         desde: desde,
         hasta: hasta,
@@ -102,7 +55,7 @@ class ReporteGeneralViewModel extends ChangeNotifier {
     } catch (e) {
       error = e.toString();
     } finally {
-      cargandoGrafico = false;
+      isLoading = false;
       notifyListeners();
     }
   }

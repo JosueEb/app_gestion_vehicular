@@ -1,12 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../../viewmodels/historico_viewmodel.dart';
+import '../../shared/app_colors.dart';
+import '../../shared/movimiento_estilo.dart';
 import 'timeline_item.dart';
 
 // historico_timeline.dart
 
 class HistoricoTimeline extends StatelessWidget {
-  const HistoricoTimeline({super.key});
+  final Widget encabezado;
+  final Future<void> Function() onRefresh;
+
+  const HistoricoTimeline({
+    super.key,
+    required this.encabezado,
+    required this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,106 +26,111 @@ class HistoricoTimeline extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final agrupado = vm.agrupadoPorMes;
-    final entries = agrupado.entries.toList();
+    final entries = vm.agrupadoPorMes.entries.toList();
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: entries.length,
-      itemBuilder: (context, index) {
-        final entry = entries[index];
-        final mes = entry.key;
-        final items = entry.value;
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        // Margen inferior: el último registro no queda pegado a la barra
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        itemCount: entries.isEmpty ? 2 : entries.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) return encabezado;
+          if (entries.isEmpty) {
+            return _SinRegistros(hayFiltro: vm.filtroTipo != null);
+          }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// ───── HEADER DEL MES ─────
-            TimelineMonthHeader(
-              mes: mes,
-              isFirst: index == 0,
-            ),
+          final entry = entries[index - 1];
+          final items = entry.value;
 
-            /// ───── LISTA DE ITEMS ─────
-            ...List.generate(
-              items.length,
-              (i) {
-                // Verificamos si es el último absoluto de toda la lista
-                final bool isLastAbsolute = 
-                    (index == entries.length - 1) && (i == items.length - 1);
-                
-                return TimelineItem(
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// ───── HEADER DEL MES ─────
+              TimelineMonthHeader(
+                mes: entry.key,
+                total: items.fold(0.0, (s, m) => s + m.total),
+              ),
+
+              /// ───── LISTA DE ITEMS ─────
+              for (var i = 0; i < items.length; i++)
+                TimelineItem(
                   movimiento: items[i],
-                  isLast: isLastAbsolute,
-                );
-              },
-            ),
-          ],
-        );
-      },
+                  isLast: i == items.length - 1,
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
 
-// En historico_timeline.dart
-
 class TimelineMonthHeader extends StatelessWidget {
   final String mes;
-  final bool isFirst; // Añadimos esto para saber si es el inicio absoluto
+  final double total;
 
   const TimelineMonthHeader({
     super.key,
     required this.mes,
-    this.isFirst = false,
+    required this.total,
   });
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
+    const estilo = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.bold,
+      letterSpacing: 0.6,
+      color: AppColors.textSecondary,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            width: 60,
-            child: Column(
-              children: [
-                // Si es el primer mes, dejamos un espacio vacío, si no, continuamos la línea
-                Container(
-                  width: 12,
-                  height: 15,
-                  color: isFirst ? Colors.transparent : Colors.grey.shade700,
-                  child: isFirst
-                      ? null
-                      : Center(
-                          child: Container(width: 2, color: Colors.white54),
-                        ),
-                ),
-                Expanded(
-                  child: Container(
-                    width: 12,
-                    color: Colors.grey.shade700,
-                    child: Center(
-                      child: Container(width: 2, color: Colors.white54),
-                    ),
-                  ),
-                ),
-              ],
+          Expanded(child: Text(mes, style: estilo)),
+          Text(formatoMoneda.format(total), style: estilo),
+        ],
+      ),
+    );
+  }
+}
+
+class _SinRegistros extends StatelessWidget {
+  final bool hayFiltro;
+
+  const _SinRegistros({required this.hayFiltro});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+      child: Column(
+        children: [
+          Icon(
+            hayFiltro ? Icons.filter_list_off : Icons.receipt_long_outlined,
+            size: 56,
+            color: AppColors.textDisabled,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            hayFiltro ? 'Nada de este tipo todavía' : 'Aún no hay registros',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
             ),
           ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-              child: Text(
-                mes.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
-                  color: Colors.grey.shade600,
-                ),
-              ),
+          if (!hayFiltro) ...[
+            const SizedBox(height: 4),
+            const Text(
+              'Toca el botón + para agregar tu primera recarga, gasto o servicio.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary),
             ),
-          ),
+          ],
         ],
       ),
     );

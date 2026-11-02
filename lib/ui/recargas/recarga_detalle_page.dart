@@ -71,7 +71,11 @@ class _RecargaDetallePageState extends State<RecargaDetallePage> {
       MaterialPageRoute(
         builder: (_) => RecargaFormPage(idMovimiento: widget.idMovimiento),
       ),
-    );
+    ).then((_) {
+      if (mounted) {
+        context.read<RecargaViewModel>().prepararEdicion(widget.idMovimiento);
+      }
+    });
   }
 
   Future<void> _handleDelete(BuildContext context, RecargaViewModel vm) async {
@@ -222,13 +226,13 @@ class _DetalleContenido extends StatelessWidget {
                   _infoGrid([
                     _gridItem(
                       'Eficiencia',
-                      stats == null
+                      stats == null || stats!['rendimiento'] == 0
                           ? '-'
                           : '${stats!['rendimiento']!.toStringAsFixed(2)} km/L',
                     ),
                     _gridItem(
                       'Costo / Km',
-                      stats == null
+                      stats == null || stats!['costoPorKm'] == 0
                           ? '-'
                           : 'MXN${stats!['costoPorKm']!.toStringAsFixed(2)}',
                     ),

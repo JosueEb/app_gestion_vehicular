@@ -71,14 +71,8 @@ class RecordatorioRepositoryImpl implements RecordatorioRepository {
 
     final result = await db.query(
       'recordatorios',
-      where: 'id_vehiculo = ? AND notificado = 0',
+      where: 'id_vehiculo = ? AND activo = 1 AND notificado = 0',
       whereArgs: [vehiculoId],
-      orderBy: '''
-        CASE 
-          WHEN odometro_objetivo IS NOT NULL THEN odometro_objetivo
-          ELSE fecha_programada
-        END
-      ''',
     );
 
     return result.map((map) => Recordatorio.fromMap(map)).toList();

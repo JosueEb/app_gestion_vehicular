@@ -3,6 +3,7 @@ import '../models/recordatorio.dart';
 import '../repositories/recordatorio_repository.dart';
 import '../repositories/recordatorio_repository_imp.dart';
 import '../services/app_preferences.dart';
+import '../services/recordatorio_notification_service.dart';
 
 class RecordatorioViewModel extends ChangeNotifier {
   final RecordatorioRepository _repo = RecordatorioRepositoryImpl();
@@ -28,6 +29,7 @@ class RecordatorioViewModel extends ChangeNotifier {
       return;
     }
 
+    await RecordatorioNotificationService.marcarVencidos(idVehiculo);
     _recordatorios = await _repo.obtenerTodos(idVehiculo);
 
     isLoading = false;
@@ -38,7 +40,11 @@ class RecordatorioViewModel extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
 
-    await _repo.crear(recordatorio);
+    final id = await _repo.crear(recordatorio);
+    final guardado = await _repo.obtenerPorId(id);
+    if (guardado != null) {
+      await RecordatorioNotificationService.programarPorFecha(guardado);
+    }
     await cargarRecordatorios();
   }
 
@@ -51,6 +57,10 @@ class RecordatorioViewModel extends ChangeNotifier {
     notifyListeners();
 
     await _repo.actualizar(recordatorio);
+    await RecordatorioNotificationService.cancelar(
+      recordatorio.idRecordatorio!,
+    );
+    await RecordatorioNotificationService.programarPorFecha(recordatorio);
     await cargarRecordatorios();
   }
 
@@ -59,6 +69,7 @@ class RecordatorioViewModel extends ChangeNotifier {
     notifyListeners();
 
     await _repo.eliminar(idRecordatorio);
+    await RecordatorioNotificationService.cancelar(idRecordatorio);
     await cargarRecordatorios();
   }
 }

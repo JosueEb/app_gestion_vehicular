@@ -1,12 +1,13 @@
 import 'package:app_gestion_vehicular/data/database_helper.dart';
 import 'package:app_gestion_vehicular/models/reporte_recarga.dart';
+import 'package:app_gestion_vehicular/models/tramo_rendimiento.dart';
 import 'package:app_gestion_vehicular/repositories/reporte_recarga_repository.dart';
 
 class ReporteRecargaRepositoryImpl implements ReporteRecargaRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
   @override
-  Future<ReporteRecarga> obtenerReporteRecarga({
+  Future<ReporteRecarga?> obtenerReporteRecarga({
     required int vehiculoId,
     DateTime? desde,
     DateTime? hasta,
@@ -27,18 +28,20 @@ class ReporteRecargaRepositoryImpl implements ReporteRecargaRepository {
       '''
       SELECT
         COUNT(*) AS total,
-        MIN(fecha) AS inicio,
-        MAX(fecha) AS fin,
-        SUM(total) AS costo
-      FROM movimientos
-      WHERE id_vehiculo = ?
+        MIN(m.fecha) AS inicio,
+        MAX(m.fecha) AS fin,
+        SUM(m.total) AS costo
+      FROM movimientos m
+      WHERE m.id_vehiculo = ?
         $whereFecha
-        AND tipo_movimiento = 'combustible'
+        AND m.tipo_movimiento = 'combustible'
     ''',
-      [vehiculoId],
+      args,
     );
 
     final totalEntradas = (resumen.first['total'] as int?) ?? 0;
+    if (totalEntradas == 0) return null;
+
     final fechaInicio = DateTime.parse(resumen.first['inicio'] as String);
     final fechaFin = DateTime.parse(resumen.first['fin'] as String);
     final costoTotal = (resumen.first['costo'] as num?)?.toDouble() ?? 0;
@@ -49,12 +52,13 @@ class ReporteRecargaRepositoryImpl implements ReporteRecargaRepository {
     // 🔹 KM
     final kmRes = await db.rawQuery(
       '''
-      SELECT MAX(odometro) - MIN(odometro) AS km
-      FROM movimientos
-      WHERE id_vehiculo = ?
-        AND tipo_movimiento = 'combustible'
+      SELECT MAX(m.odometro) - MIN(m.odometro) AS km
+      FROM movimientos m
+      WHERE m.id_vehiculo = ?
+        AND m.tipo_movimiento = 'combustible'
+        $whereFecha
     ''',
-      [vehiculoId],
+      args,
     );
 
     final kmRecorridos = (kmRes.first['km'] as num?)?.toDouble() ?? 0;
@@ -71,56 +75,63 @@ class ReporteRecargaRepositoryImpl implements ReporteRecargaRepository {
         AND m.tipo_movimiento = 'combustible'
         $whereFecha
     ''',
-      [vehiculoId],
+      args,
     );
 
     final litrosTotales = (litrosRes.first['litros'] as num?)?.toDouble() ?? 0;
 
-    final double rendimientoPromedio = litrosTotales > 0
-        ? kmRecorridos / litrosTotales
-        : 0;
-
     // 🔹 EFICIENCIAS
-    final eficienciaRes = await db.rawQuery(
+    // Sin filtro de fechas: un tramo del periodo puede cerrarse con una recarga posterior
+    final recargas = await db.rawQuery(
       '''
       SELECT
+        m.fecha,
         m.odometro,
-        md.cantidad AS litros,
-        md.tanque_lleno AS tanque_lleno,
-        (
-          SELECT m2.odometro
-          FROM movimientos m2
-          WHERE m2.id_vehiculo = m.id_vehiculo
-            AND m2.tipo_movimiento = 'combustible'
-            AND m2.fecha > m.fecha
-          ORDER BY m2.fecha ASC
-          LIMIT 1
-        ) AS odometro_siguiente
+        md.precio_unitario,
+        md.cantidad,
+        md.subtotal,
+        md.tanque_lleno
       FROM movimientos m
       JOIN movimiento_detalle md
         ON md.id_movimiento = m.id_movimiento
       WHERE m.id_vehiculo = ?
         AND m.tipo_movimiento = 'combustible'
-        $whereFecha
-      ORDER BY m.fecha DESC
+      ORDER BY m.fecha ASC
     ''',
       [vehiculoId],
     );
 
+    final tanques = recargas.map(RecargaTanque.fromMap).toList();
     final eficiencias = <double>[];
+    final puntos = <PuntoRecarga>[];
+    var kmTramos = 0.0;
+    var litrosTramos = 0.0;
 
-    for (final r in eficienciaRes) {
-      final stats = calcularEficiencia(
-        odometroActual: (r['odometro'] as num).toDouble(),
-        odometroSiguiente: (r['odometro_siguiente'] as num?)?.toDouble(),
-        litrosCargados: (r['litros'] as num).toDouble(),
-        tanqueLleno: (r['tanque_lleno'] as int) == 1,
-      );
-
-      if (stats != null) {
-        eficiencias.add(stats['rendimiento']!);
+    for (var i = 0; i < recargas.length; i++) {
+      final fecha = DateTime.parse(recargas[i]['fecha'] as String);
+      if (desde != null && hasta != null) {
+        if (fecha.isBefore(desde) || fecha.isAfter(hasta)) continue;
       }
+
+      final tramo = calcularTramo(tanques[i], tanques.skip(i + 1));
+      if (tramo != null) {
+        eficiencias.add(tramo.rendimiento);
+        kmTramos += tramo.km;
+        litrosTramos += tramo.litros;
+      }
+
+      puntos.add(
+        PuntoRecarga(
+          fecha: fecha,
+          precioLitro: (recargas[i]['precio_unitario'] as num).toDouble(),
+          rendimiento: tramo?.rendimiento,
+        ),
+      );
     }
+
+    final double rendimientoPromedio = litrosTramos > 0
+        ? kmTramos / litrosTramos
+        : 0;
 
     return ReporteRecarga(
       totalEntradas: totalEntradas,
@@ -131,38 +142,14 @@ class ReporteRecargaRepositoryImpl implements ReporteRecargaRepository {
       costoPorKm: costoPorKm,
       litrosTotales: litrosTotales,
       rendimientoPromedio: rendimientoPromedio,
-      eficienciaUltima: eficiencias.isNotEmpty ? eficiencias.first : 0,
+      eficienciaUltima: eficiencias.isNotEmpty ? eficiencias.last : 0,
       eficienciaMaxima: eficiencias.isNotEmpty
           ? eficiencias.reduce((a, b) => a > b ? a : b)
           : 0,
       eficienciaMinima: eficiencias.isNotEmpty
           ? eficiencias.reduce((a, b) => a < b ? a : b)
           : 0,
+      puntos: puntos,
     );
   }
-}
-
-Map<String, double>? calcularEficiencia({
-  required double odometroActual,
-  required double? odometroSiguiente,
-  required double litrosCargados,
-  required bool tanqueLleno,
-}) {
-  // ❌ SI NO SE LLENÓ EL TANQUE → NO CALCULAR
-  if (!tanqueLleno) return null;
-
-  if (odometroSiguiente == null) return null;
-  if (litrosCargados <= 0) return null;
-
-  final kmRecorridos = odometroSiguiente - odometroActual;
-  if (kmRecorridos <= 0) return null;
-
-  final rendimiento = kmRecorridos / litrosCargados;
-
-  return {
-    'litros': litrosCargados,
-    'kmRecorridos': kmRecorridos,
-    'rendimiento': rendimiento,
-    'porcentajeTanque': 100.0,
-  };
 }

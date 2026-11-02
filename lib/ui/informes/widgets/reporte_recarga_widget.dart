@@ -2,42 +2,59 @@ import 'package:app_gestion_vehicular/viewmodels/reporte_recarga_viewmodel.dart'
 import 'package:app_gestion_vehicular/viewmodels/vehiculo_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../../models/periodo_informe.dart';
+import '../../../services/movimientos_events.dart';
+import '../../shared/empty_state.dart';
 import 'componentes_reporte.dart';
+import 'graficas_reporte.dart';
 
 class ReporteRecargaWidget extends StatefulWidget {
-  const ReporteRecargaWidget({super.key});
+  final PeriodoInforme periodo;
+
+  const ReporteRecargaWidget({super.key, required this.periodo});
 
   @override
   State<ReporteRecargaWidget> createState() => _ReporteRecargaWidgetState();
 }
 
 class _ReporteRecargaWidgetState extends State<ReporteRecargaWidget> {
-  int? _ultimoVehiculoId;
+  @override
+  void initState() {
+    super.initState();
+    MovimientosEvents.cambios.addListener(_cargar);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _cargar());
+  }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  void didUpdateWidget(ReporteRecargaWidget anterior) {
+    super.didUpdateWidget(anterior);
+    if (anterior.periodo != widget.periodo) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _cargar());
+    }
+  }
 
-    final vehiculoVM = context.read<VehiculoViewModel>();
-    final reporteVM = context.read<ReporteRecargaViewModel>();
+  @override
+  void dispose() {
+    MovimientosEvents.cambios.removeListener(_cargar);
+    super.dispose();
+  }
 
-    final vehiculo = vehiculoVM.vehiculoActivo;
+  void _cargar() {
+    if (!mounted) return;
+
+    final vehiculo = context.read<VehiculoViewModel>().vehiculoActivo;
     if (vehiculo == null) return;
 
-    // 🚫 Evitar recargas innecesarias
-    if (_ultimoVehiculoId == vehiculo.idVehiculo) return;
-
-    _ultimoVehiculoId = vehiculo.idVehiculo;
-
-    // ✅ DIFERIDO AL FINAL DEL FRAME
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      reporteVM.cargarReporte(
-        vehiculoId: vehiculo.idVehiculo!,
-      );
-    });
+    context.read<ReporteRecargaViewModel>().cargarReporte(
+      vehiculoId: vehiculo.idVehiculo!,
+      desde: widget.periodo.desde(),
+      hasta: widget.periodo.hasta(),
+    );
   }
+
+  String _kmL(double valor) =>
+      valor > 0 ? '${valor.toStringAsFixed(2)} km/L' : '--';
 
   @override
   Widget build(BuildContext context) {
@@ -55,8 +72,13 @@ class _ReporteRecargaWidgetState extends State<ReporteRecargaWidget> {
 
     final reporte = reporteVM.reporte;
     if (reporte == null) {
-      return const Center(child: Text('Sin datos de recarga'));
+      return const EmptyState(message: 'Sin recargas en este periodo');
     }
+
+    final rendimientos = [
+      for (final p in reporte.puntos)
+        if (p.rendimiento != null) (p.fecha, p.rendimiento!),
+    ];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -69,10 +91,17 @@ class _ReporteRecargaWidgetState extends State<ReporteRecargaWidget> {
           TripleStatsRow(
             labels: const ['Total', 'Por día', 'Por km'],
             values: [
-              'MXN ${reporte.costoTotal.toStringAsFixed(2)}',
-              'MXN ${reporte.costoPorDia.toStringAsFixed(2)}',
-              'MXN ${reporte.costoPorKm.toStringAsFixed(2)}',
+              formatoMoneda.format(reporte.costoTotal),
+              formatoMoneda.format(reporte.costoPorDia),
+              formatoMoneda.format(reporte.costoPorKm),
             ],
+          ),
+          const SizedBox(height: 12),
+          DoubleStatsRow(
+            l1: 'Por recarga',
+            v1: formatoMoneda.format(reporte.costoPromedio),
+            l2: 'Precio promedio',
+            v2: '${formatoMoneda.format(reporte.precioPromedioLitro)}/L',
           ),
 
           const SizedBox(height: 20),
@@ -82,31 +111,49 @@ class _ReporteRecargaWidgetState extends State<ReporteRecargaWidget> {
             l1: 'Volumen total',
             v1: '${reporte.litrosTotales.toStringAsFixed(2)} L',
             l2: 'Promedio general',
-            v2: '${reporte.rendimientoPromedio.toStringAsFixed(2)} km/L',
+            v2: _kmL(reporte.rendimientoPromedio),
           ),
 
           const SizedBox(height: 20),
 
-          const SeccionHeader(
-            titulo: 'Eficiencia del combustible',
-            color: Colors.grey,
-          ),
+          const SeccionHeader(titulo: 'Rendimiento', color: recargaColor),
           TripleStatsRow(
-            labels: const ['ÚLTIMO', 'MÁS GRANDE', 'INFERIOR'],
+            labels: const ['Último', 'Mejor', 'Peor'],
             values: [
-              '${reporte.eficienciaUltima.toStringAsFixed(2)} km/L',
-              '${reporte.eficienciaMaxima.toStringAsFixed(2)} km/L',
-              '${reporte.eficienciaMinima.toStringAsFixed(2)} km/L',
+              _kmL(reporte.eficienciaUltima),
+              _kmL(reporte.eficienciaMaxima),
+              _kmL(reporte.eficienciaMinima),
             ],
             isMini: true,
           ),
+          const SizedBox(height: 16),
+          if (rendimientos.length < 2)
+            const SinDatosGrafica(
+              mensaje:
+                  'Registra más recargas con tanque lleno para ver cómo cambia el rendimiento',
+            )
+          else
+            GraficoLinea(
+              puntos: rendimientos,
+              color: colorRecarga,
+              formato: _kmL,
+              descripcion: 'Gráfica de rendimiento por recarga',
+            ),
 
           const SizedBox(height: 20),
-          const SeccionHeader(titulo: 'Gráficos'),
-          const SelectorGrafico(),
+
+          const SeccionHeader(titulo: 'Precio por litro', color: recargaColor),
+          GraficoLinea(
+            puntos: [
+              for (final p in reporte.puntos) (p.fecha, p.precioLitro),
+            ],
+            color: colorRecarga,
+            formato: (v) => '${formatoMoneda.format(v)}/L',
+            descripcion: 'Gráfica del precio por litro en cada recarga',
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
   }
 }
-

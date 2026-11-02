@@ -13,6 +13,8 @@ import '../../recargas/recarga_detalle_page.dart';
 import '../../recargas/recarga_form_page.dart';
 import '../../../viewmodels/vehiculo_viewmodel.dart';
 import '../../servicios/edit_servicio_page.dart';
+import '../../shared/app_colors.dart';
+import '../../shared/movimiento_estilo.dart';
 
 class TimelineItem extends StatelessWidget {
   final MovimientoHistorico movimiento;
@@ -24,74 +26,59 @@ class TimelineItem extends StatelessWidget {
     this.isLast = false,
   });
 
+  /// "Peaje +2" o, sin conceptos, el nombre del tipo
+  String get _titulo {
+    final detalles = movimiento.detalles;
+    final primero = detalles.isNotEmpty ? detalles.first.descripcion : null;
+    if (primero == null || primero.isEmpty) {
+      return nombreTipoMovimiento(movimiento.tipo);
+    }
+    return detalles.length > 1 ? '$primero +${detalles.length - 1}' : primero;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('dd MMM', 'es');
+    final fecha = DateFormat('d MMM', 'es').format(movimiento.fecha);
+    final km = NumberFormat('#,##0').format(movimiento.odometro);
+    final color = colorTipoMovimiento(movimiento.tipo);
 
-    // Escuchamos el ID expandido desde el ViewModel para el efecto acordeón
-    final expandedId = context.select<HistoricoViewModel, int?>(
-      (vm) => vm.itemExpandidoId,
-    );
-    final bool isExpanded = expandedId == movimiento.idMovimiento;
-
-    // Obtenemos los cálculos de combustible si aplica
     final vm = context.read<HistoricoViewModel>();
     final vehiculo = context.read<VehiculoViewModel>().vehiculoActivo;
-    final tamanioTanque = vehiculo?.tamanioTanque.toDouble();
     final stats = vm.obtenerEstadisticasCombustible(
       movimiento,
-      tamanioTanque?.toInt() ?? 0,
+      vehiculo?.tamanioTanque ?? 0,
     );
 
     return InkWell(
-      onTap: () {
-        // Notificamos al ViewModel para cerrar otros y abrir este
-        vm.toggleExpansion(movimiento.idMovimiento);
-      },
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => _verDetalleMovimiento(context, movimiento),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            /// ───── COLUMNA DEL TIMELINE (CARRETERA) ─────
+            /// ───── ICONO Y LÍNEA DEL TIMELINE ─────
             SizedBox(
-              width: 60,
+              width: 44,
               child: Column(
                 children: [
+                  const SizedBox(height: 8),
                   Container(
-                    width: 12,
-                    height: 10,
-                    color: Colors.grey.shade700,
-                    child: Center(
-                      child: Container(width: 2, color: Colors.white54),
-                    ),
-                  ),
-                  Container(
-                    width: 40,
-                    height: 40,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: _colorPorTipo(),
+                      color: color.withValues(alpha: 0.14),
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
                     ),
-                    child: Icon(_iconoPorTipo(), color: Colors.white, size: 20),
+                    child: Icon(
+                      iconoTipoMovimiento(movimiento.tipo),
+                      color: color,
+                      size: 18,
+                    ),
                   ),
                   Expanded(
-                    child: Container(
-                      width: 12,
-                      color: isLast ? Colors.transparent : Colors.grey.shade700,
-                      child: isLast
-                          ? null
-                          : Center(
-                              child: Container(width: 2, color: Colors.white54),
-                            ),
-                    ),
+                    child: isLast
+                        ? const SizedBox.shrink()
+                        : Container(width: 2, color: AppColors.divider),
                   ),
                 ],
               ),
@@ -99,221 +86,85 @@ class TimelineItem extends StatelessWidget {
 
             /// ───── CONTENIDO DEL ITEM ─────
             Expanded(
-              child: SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 0, 12),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 8,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  movimiento.tipo,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                // if (movimiento.tipo.toLowerCase() ==
-                                //     'combustible')
-                                //   const Text(
-                                //     "Gasolinera",
-                                //     style: TextStyle(
-                                //       color: Colors.grey,
-                                //       fontSize: 12,
-                                //     ),
-                                //   ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.speed,
-                                      size: 14,
-                                      color: Colors.grey,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${movimiento.odometro.toStringAsFixed(0)} km',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _titulo,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
                             ),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                dateFormat
-                                    .format(movimiento.fecha)
-                                    .toLowerCase(),
-                                style: TextStyle(
-                                  color: Colors.grey.shade500,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                NumberFormat.currency(
-                                  locale: 'es',
-                                  symbol: "MXN",
-                                ).format(movimiento.total),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ],
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          formatoMoneda.format(movimiento.total),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${nombreTipoMovimiento(movimiento.tipo)} · $fecha · $km km',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
                       ),
                     ),
-
-                    /// ───── SECCIÓN EXPANDIBLE (CÁLCULOS Y ACCIONES) ─────
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeInOut,
-                      child: isExpanded
-                          ? Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8.0,
-                                vertical: 4.0,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // MOSTRAR DATOS CALCULADOS
-                                  if (stats != null) ...[
-                                    _buildDetailExtra(
-                                      Icons.local_gas_station,
-                                      "Gasolina: ${stats['litros']?.toStringAsFixed(2)} L",
-                                    ),
-                                    if (stats['kmRecorridos']! > 0) ...[
-                                      _buildDetailExtra(
-                                        Icons.trending_up,
-                                        "${stats['rendimiento']?.toStringAsFixed(2)} km/L",
-                                      ),
-                                      _buildDetailExtra(
-                                        Icons.map,
-                                        "Distancia recorrida: ${stats['kmRecorridos']?.toStringAsFixed(0)} km",
-                                      ),
-                                    ],
-                                  ],
-
-                                  // FILA DE ACCIONES
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.visibility_outlined,
-                                        ),
-                                        onPressed: () {
-                                          _verDetalleMovimiento(
-                                            context,
-                                            movimiento,
-                                          );
-                                        },
-                                      ),
-
-                                      IconButton(
-                                        onPressed: () {
-                                          _editarMovimiento(
-                                            context,
-                                            movimiento,
-                                          );
-                                        },
-                                        icon: const Icon(Icons.edit_outlined),
-                                      ),
-                                      IconButton(
-                                        onPressed: () async {
-                                          // Simplemente llama al método, él ya tiene la lógica de confirmación adentro
-                                          await _manejarEliminacion(
-                                            context,
-                                            movimiento,
-                                          );
-                                        },
-                                        icon: const Icon(Icons.delete_outline),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            )
-                          : const SizedBox(width: double.infinity, height: 0),
-                    ),
-                    const Divider(height: 1),
+                    if (stats != null)
+                      Text(
+                        [
+                          '${stats['litros']!.toStringAsFixed(1)} L',
+                          if (stats['rendimiento']! > 0)
+                            '${stats['rendimiento']!.toStringAsFixed(1)} km/L',
+                        ].join(' · '),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                   ],
                 ),
               ),
+            ),
+
+            /// ───── ACCIONES ─────
+            PopupMenuButton<String>(
+              tooltip: 'Más acciones',
+              padding: EdgeInsets.zero,
+              icon: const Icon(
+                Icons.more_vert,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+              onSelected: (accion) {
+                if (accion == 'editar') {
+                  _editarMovimiento(context, movimiento);
+                } else {
+                  _manejarEliminacion(context, movimiento);
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'editar', child: Text('Editar')),
+                PopupMenuItem(value: 'eliminar', child: Text('Eliminar')),
+              ],
             ),
           ],
         ),
       ),
     );
-  }
-
-  Widget _buildDetailExtra(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: Colors.grey),
-          const SizedBox(width: 8),
-          Text(text, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  IconData _iconoPorTipo() {
-    switch (movimiento.tipo.toLowerCase()) {
-      case 'combustible':
-        return Icons.local_gas_station;
-      case 'servicio':
-        return Icons.oil_barrel;
-      case 'gasto':
-        return Icons.credit_card;
-      case 'ingreso':
-        return Icons.credit_card;
-      case 'lista de verificación':
-        return Icons.checklist;
-      default:
-        return Icons.directions_car;
-    }
-  }
-
-  Color _colorPorTipo() {
-    switch (movimiento.tipo.toLowerCase()) {
-      case 'combustible':
-        return Colors.orange;
-      case 'servicio':
-        return const Color(0xFF795548);
-      case 'gasto':
-        return const Color(0xFFFF5722);
-      case 'ruta':
-        return const Color(0xFF607D8B);
-      case 'ingreso':
-        return Colors.lightGreen;
-      case 'lista de verificación':
-        return Colors.blue;
-      default:
-        return Colors.blueGrey;
-    }
   }
 
   void _verDetalleMovimiento(
@@ -425,7 +276,10 @@ class TimelineItem extends StatelessWidget {
     BuildContext context,
     MovimientoHistorico movimiento,
   ) async {
-    final confirm = await _confirmarEliminar(context, movimiento.tipo);
+    final confirm = await _confirmarEliminar(
+      context,
+      nombreTipoMovimiento(movimiento.tipo).toLowerCase(),
+    );
     if (!confirm) return;
 
     try {
@@ -449,10 +303,13 @@ class TimelineItem extends StatelessWidget {
           throw 'Tipo no soportado para eliminar';
       }
 
-      // Opcional: Refrescar la lista del histórico después de eliminar
-
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${movimiento.tipo} eliminado correctamente')),
+        SnackBar(
+          content: Text(
+            '${nombreTipoMovimiento(movimiento.tipo)} eliminado correctamente',
+          ),
+        ),
       );
     } catch (e) {
       if (context.mounted) {

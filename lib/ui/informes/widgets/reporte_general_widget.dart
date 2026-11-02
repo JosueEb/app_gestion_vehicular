@@ -1,48 +1,78 @@
-import 'package:app_gestion_vehicular/ui/informes/graficos/grafico_vehiculo_page.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../../models/gasto_mensual.dart';
+import '../../../models/gasto_por_tipo.dart';
+import '../../../models/periodo_informe.dart';
+import '../../../services/movimientos_events.dart';
 import '../../../viewmodels/reporte_general_viewmodel.dart';
 import '../../../viewmodels/vehiculo_viewmodel.dart';
+import '../../shared/empty_state.dart';
 import 'componentes_reporte.dart';
+import 'graficas_reporte.dart';
 
 class ReporteGeneralWidget extends StatefulWidget {
-  const ReporteGeneralWidget({super.key});
+  final PeriodoInforme periodo;
+
+  const ReporteGeneralWidget({super.key, required this.periodo});
 
   @override
   State<ReporteGeneralWidget> createState() => _ReporteGeneralWidgetState();
 }
 
 class _ReporteGeneralWidgetState extends State<ReporteGeneralWidget> {
-  bool _cargado = false;
-  String? graficoSeleccionado = 'Seleccionar';
-  int? vehiculoId;
+  @override
+  void initState() {
+    super.initState();
+    MovimientosEvents.cambios.addListener(_cargar);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _cargar());
+  }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  void didUpdateWidget(ReporteGeneralWidget anterior) {
+    super.didUpdateWidget(anterior);
+    if (anterior.periodo != widget.periodo) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _cargar());
+    }
+  }
 
-    if (_cargado) return;
+  @override
+  void dispose() {
+    MovimientosEvents.cambios.removeListener(_cargar);
+    super.dispose();
+  }
 
-    _cargado = true;
+  void _cargar() {
+    if (!mounted) return;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final vehiculoVm = context.read<VehiculoViewModel>();
-      final reporteVm = context.read<ReporteGeneralViewModel>();
+    final vehiculo = context.read<VehiculoViewModel>().vehiculoActivo;
+    if (vehiculo == null) return;
 
-      final vehiculo = vehiculoVm.vehiculoActivo;
-      if (vehiculo != null) {
-        reporteVm.cargarReporte(vehiculoId: vehiculo.idVehiculo!);
-        vehiculoId = vehiculo.idVehiculo;
-      }
-    });
+    context.read<ReporteGeneralViewModel>().cargarReporte(
+      vehiculoId: vehiculo.idVehiculo!,
+      desde: widget.periodo.desde(),
+      hasta: widget.periodo.hasta(),
+    );
   }
 
   String _formatFecha(DateTime? fecha, DateFormat formatter) {
     if (fecha == null) return '--';
     return formatter.format(fecha);
   }
+
+  String _nombreCategoria(GastoPorTipo d) => switch (d.tipo) {
+    'combustible' => 'Recargas',
+    'gasto' => 'Gastos',
+    'servicio' => 'Servicios',
+    _ => d.tipo,
+  };
+
+  Color _colorCategoria(GastoPorTipo d) => switch (d.tipo) {
+    'combustible' => colorRecarga,
+    'gasto' => colorGasto,
+    _ => colorServicio,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -58,13 +88,19 @@ class _ReporteGeneralWidgetState extends State<ReporteGeneralWidget> {
           );
         }
 
-        if (vm.data == null) {
-          return const Center(child: Text('No hay datos para mostrar'));
+        final data = vm.data;
+        if (data == null || data.totalEntradas == 0) {
+          return const EmptyState(message: 'Sin movimientos en este periodo');
         }
 
-        final data = vm.data!;
-        final currency = NumberFormat.currency(locale: 'es_MX', symbol: 'MXN');
         final dateFormat = DateFormat('dd/MMM/yyyy', 'es');
+        final meses = completarMeses(vm.gastosMensuales);
+        double totalMes(GastoMensual g) => g.recarga + g.gasto + g.servicio;
+        final mesMayor = meses.reduce(
+          (a, b) => totalMes(b) > totalMes(a) ? b : a,
+        );
+        final promedioMensual =
+            meses.fold<double>(0, (s, g) => s + totalMes(g)) / meses.length;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -83,10 +119,18 @@ class _ReporteGeneralWidgetState extends State<ReporteGeneralWidget> {
               TripleStatsRow(
                 labels: const ['Total', 'Por día', 'Por km'],
                 values: [
-                  currency.format(data.costoTotal),
-                  currency.format(data.costoPorDia),
-                  currency.format(data.costoPorKm),
+                  formatoMoneda.format(data.costoTotal),
+                  formatoMoneda.format(data.costoPorDia),
+                  formatoMoneda.format(data.costoPorKm),
                 ],
+              ),
+              const SizedBox(height: 12),
+              DoubleStatsRow(
+                l1: 'Promedio mensual',
+                v1: formatoMoneda.format(promedioMensual),
+                l2:
+                    'Mes más caro (${DateFormat('MMM yy', 'es').format(DateTime(mesMayor.anio, mesMayor.mes))})',
+                v2: formatoMoneda.format(totalMes(mesMayor)),
               ),
 
               const SizedBox(height: 20),
@@ -101,63 +145,30 @@ class _ReporteGeneralWidgetState extends State<ReporteGeneralWidget> {
 
               const SizedBox(height: 20),
 
-              const SeccionHeader(titulo: 'Gráficos'),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 4,
-                ), // Ajustado para el dropdown
-                decoration: const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey, width: 0.5),
-                  ),
-                ),
-                child: DropdownButtonHideUnderline(
-                  // Quitamos la línea por defecto del dropdown
-                  child: DropdownButton<String>(
-                    value: graficoSeleccionado,
-                    isExpanded: true, // Para que ocupe todo el ancho
-                    icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                    items:
-                        <String>[
-                          'Seleccionar',
-                          'Gráfico comparativo de gastos',
-                          'Gráfico de gastos mensuales',
-                          'Gráfico de odometro',
-                        ].map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Row(
-                              children: [
-                                const Icon(Icons.bar_chart, color: Colors.grey),
-                                const SizedBox(width: 10),
-                                Text(
-                                  value,
-                                  style: const TextStyle(
-                                    color: Colors.black87,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        // Navigator.push se encarga de cambiar la pantalla
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => GraficoVehiculoPage(
-                              tipoGrafico: newValue,
-                              vehiculoId: vehiculoId!,
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                ),
+              const SeccionHeader(titulo: '¿En qué se va el dinero?'),
+              DesgloseBarras(
+                datos: vm.gastosPorTipo,
+                color: _colorCategoria,
+                nombre: _nombreCategoria,
               ),
+
+              const SizedBox(height: 20),
+
+              const SeccionHeader(titulo: 'Costo por mes'),
+              GraficoMensual(gastos: vm.gastosMensuales),
+
+              const SizedBox(height: 20),
+
+              const SeccionHeader(titulo: 'Odómetro'),
+              GraficoLinea(
+                puntos: [
+                  for (final p in vm.puntosOdometro) (p.fecha, p.odometro),
+                ],
+                color: const Color(0xFF0097A7),
+                formato: (v) => '${NumberFormat('#,##0').format(v)} km',
+                descripcion: 'Gráfica del odómetro en el tiempo',
+              ),
+              const SizedBox(height: 24),
             ],
           ),
         );

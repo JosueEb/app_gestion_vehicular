@@ -82,28 +82,7 @@ class _StatItem extends StatelessWidget {
         children: [
           Text(label, style: TextStyle(color: Colors.grey, fontSize: isMini ? 10 : 12)),
           const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: isMini ? 14 : 16, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-}
-
-class SelectorGrafico extends StatelessWidget {
-  const SelectorGrafico({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey, width: 0.5))),
-      child: const Row(
-        children: [
-          Icon(Icons.bar_chart, color: Colors.grey),
-          SizedBox(width: 10),
-          Text('Seleccionar', style: TextStyle(color: Colors.black87, fontSize: 16)),
-          Spacer(),
-          Icon(Icons.arrow_drop_down, color: Colors.grey),
+          Text(value, textAlign: TextAlign.center, style: TextStyle(fontSize: isMini ? 14 : 16, fontWeight: FontWeight.w500)),
         ],
       ),
     );

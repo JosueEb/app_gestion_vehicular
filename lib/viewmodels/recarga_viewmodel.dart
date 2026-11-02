@@ -5,6 +5,8 @@ import '../models/movimiento_detalle.dart';
 import '../repositories/recarga_repository.dart';
 import '../repositories/recarga_repository_impl.dart';
 import '../services/app_preferences.dart';
+import '../services/movimientos_events.dart';
+import '../services/recordatorio_km_service.dart';
 
 class RecargaViewModel extends ChangeNotifier {
   final RecargaRepository _repository = RecargaRepositoryImpl();
@@ -85,6 +87,11 @@ class RecargaViewModel extends ChangeNotifier {
       movimiento: movimiento,
       detalleSinId: detalle,
     );
+    await RecordatorioKmService.evaluar(
+      vehiculoId: idVehiculo,
+      odometroActual: odometro,
+    );
+    MovimientosEvents.notificar();
 
     isLoading = false;
     notifyListeners();
@@ -132,6 +139,11 @@ class RecargaViewModel extends ChangeNotifier {
         movimiento: movimiento,
         detalle: detalle,
       );
+      await RecordatorioKmService.evaluar(
+        vehiculoId: vehiculoId,
+        odometroActual: odometro,
+      );
+      MovimientosEvents.notificar();
     } finally {
       isLoading = false;
       notifyListeners();
@@ -144,6 +156,7 @@ class RecargaViewModel extends ChangeNotifier {
 
     try {
       await _repository.eliminarRecarga(idMovimiento);
+      MovimientosEvents.notificar();
     } finally {
       isLoading = false;
       notifyListeners();

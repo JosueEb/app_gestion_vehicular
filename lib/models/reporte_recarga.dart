@@ -1,3 +1,15 @@
+class PuntoRecarga {
+  final DateTime fecha;
+  final double precioLitro;
+  final double? rendimiento;
+
+  PuntoRecarga({
+    required this.fecha,
+    required this.precioLitro,
+    this.rendimiento,
+  });
+}
+
 class ReporteRecarga {
   final int totalEntradas;
   final DateTime fechaInicio;
@@ -14,6 +26,9 @@ class ReporteRecarga {
   final double eficienciaMaxima;
   final double eficienciaMinima;
 
+  /// Ordenados del más antiguo al más reciente
+  final List<PuntoRecarga> puntos;
+
   ReporteRecarga({
     required this.totalEntradas,
     required this.fechaInicio,
@@ -26,5 +41,11 @@ class ReporteRecarga {
     required this.eficienciaUltima,
     required this.eficienciaMaxima,
     required this.eficienciaMinima,
+    required this.puntos,
   });
+
+  double get precioPromedioLitro =>
+      litrosTotales > 0 ? costoTotal / litrosTotales : 0;
+
+  double get costoPromedio => costoTotal / totalEntradas;
 }

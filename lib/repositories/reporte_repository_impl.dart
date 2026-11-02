@@ -4,6 +4,7 @@ import 'package:app_gestion_vehicular/models/punto_odometro.dart';
 
 import '../data/database_helper.dart';
 import '../models/reporte_general_data.dart';
+import '../models/reporte_movimiento.dart';
 import 'reporte_repository.dart';
 
 class ReporteRepositoryImpl implements ReporteRepository {
@@ -83,8 +84,101 @@ class ReporteRepositoryImpl implements ReporteRepository {
   }
 
   @override
+  Future<ReporteMovimiento?> obtenerReporteMovimiento({
+    required int vehiculoId,
+    required String tipoMovimiento,
+    DateTime? desde,
+    DateTime? hasta,
+  }) async {
+    final db = await _dbHelper.database;
+
+    final whereFecha = (desde != null && hasta != null)
+        ? 'AND m.fecha BETWEEN ? AND ?'
+        : '';
+
+    final argsFecha = <dynamic>[vehiculoId];
+    if (desde != null && hasta != null) {
+      argsFecha.addAll([desde.toIso8601String(), hasta.toIso8601String()]);
+    }
+    final argsTipo = [...argsFecha, tipoMovimiento];
+
+    final resumen = await db.rawQuery('''
+      SELECT
+        COUNT(*) AS total_entradas,
+        IFNULL(SUM(m.total), 0) AS total,
+        MIN(m.fecha) AS fecha_inicio,
+        MAX(m.fecha) AS fecha_fin
+      FROM movimientos m
+      WHERE m.id_vehiculo = ?
+        $whereFecha
+        AND m.tipo_movimiento = ?
+      ''', argsTipo);
+
+    final totalEntradas = resumen.first['total_entradas'] as int;
+    if (totalEntradas == 0) return null;
+
+    final costoTotal = (resumen.first['total'] as num).toDouble();
+
+    // Días y km salen de todos los movimientos: un gasto aislado no mide lo recorrido
+    final recorrido = await db.rawQuery('''
+      SELECT
+        MAX(m.odometro) - MIN(m.odometro) AS km,
+        MIN(m.fecha) AS fecha_inicio,
+        MAX(m.fecha) AS fecha_fin
+      FROM movimientos m
+      WHERE m.id_vehiculo = ?
+        $whereFecha
+      ''', argsFecha);
+
+    final km = (recorrido.first['km'] as num).toDouble();
+    final dias =
+        DateTime.parse(recorrido.first['fecha_fin'] as String)
+            .difference(DateTime.parse(recorrido.first['fecha_inicio'] as String))
+            .inDays +
+        1;
+
+    final conceptos = await db.rawQuery('''
+      SELECT
+        IFNULL(md.descripcion, 'Sin concepto') AS nombre,
+        SUM(md.subtotal) AS total
+      FROM movimientos m
+      JOIN movimiento_detalle md
+        ON md.id_movimiento = m.id_movimiento
+      WHERE m.id_vehiculo = ?
+        $whereFecha
+        AND m.tipo_movimiento = ?
+      GROUP BY nombre
+      ORDER BY total DESC
+      ''', argsTipo);
+
+    return ReporteMovimiento(
+      totalEntradas: totalEntradas,
+      fechaInicio: DateTime.parse(resumen.first['fecha_inicio'] as String),
+      fechaFin: DateTime.parse(resumen.first['fecha_fin'] as String),
+      costoTotal: costoTotal,
+      costoPorDia: costoTotal / dias,
+      costoPorKm: km > 0 ? costoTotal / km : 0,
+      conceptos: conceptos
+          .map(
+            (e) => GastoPorTipo(
+              e['nombre'] as String,
+              (e['total'] as num).toDouble(),
+            ),
+          )
+          .toList(),
+      mensual: await obtenerGastosMensuales(
+        vehiculoId: vehiculoId,
+        tipoMovimiento: tipoMovimiento,
+        desde: desde,
+        hasta: hasta,
+      ),
+    );
+  }
+
+  @override
   Future<List<GastoMensual>> obtenerGastosMensuales({
     required int vehiculoId,
+    String? tipoMovimiento,
     DateTime? desde,
     DateTime? hasta,
   }) async {
@@ -93,11 +187,13 @@ class ReporteRepositoryImpl implements ReporteRepository {
     final whereFecha = (desde != null && hasta != null)
         ? 'AND fecha BETWEEN ? AND ?'
         : '';
+    final whereTipo = tipoMovimiento != null ? 'AND tipo_movimiento = ?' : '';
 
     final args = <dynamic>[vehiculoId];
     if (desde != null && hasta != null) {
       args.addAll([desde.toIso8601String(), hasta.toIso8601String()]);
     }
+    if (tipoMovimiento != null) args.add(tipoMovimiento);
 
     final res = await db.rawQuery('''
     SELECT
@@ -108,6 +204,7 @@ class ReporteRepositoryImpl implements ReporteRepository {
     FROM movimientos
     WHERE id_vehiculo = ?
       $whereFecha
+      $whereTipo
     GROUP BY anio, mes, tipo_movimiento
     ORDER BY anio, mes
   ''', args);
@@ -142,14 +239,27 @@ class ReporteRepositoryImpl implements ReporteRepository {
   }
 
   @override
-  Future<List<PuntoOdometro>> obtenerOdometro(int vehiculoId) async {
+  Future<List<PuntoOdometro>> obtenerOdometro({
+    required int vehiculoId,
+    DateTime? desde,
+    DateTime? hasta,
+  }) async {
     final db = await _dbHelper.database;
+
+    final whereFecha = (desde != null && hasta != null)
+        ? 'AND fecha BETWEEN ? AND ?'
+        : '';
+
+    final args = <dynamic>[vehiculoId];
+    if (desde != null && hasta != null) {
+      args.addAll([desde.toIso8601String(), hasta.toIso8601String()]);
+    }
 
     final res = await db.query(
       'movimientos',
       columns: ['fecha', 'odometro'],
-      where: 'id_vehiculo = ?',
-      whereArgs: [vehiculoId],
+      where: 'id_vehiculo = ? $whereFecha',
+      whereArgs: args,
       orderBy: 'fecha',
     );
 
@@ -185,8 +295,6 @@ class ReporteRepositoryImpl implements ReporteRepository {
 		m.tipo_movimiento as nombre,
 		SUM(m.total) as total
     FROM movimientos m
-    JOIN movimiento_detalle md
-      ON md.id_movimiento = m.id_movimiento
     WHERE m.id_vehiculo = ?
       $whereFecha
     GROUP BY m.tipo_movimiento
